@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Product } from '@/data/types'
+import { LOW_STOCK_THRESHOLD, type Product } from '@/data/types'
 import { Button, Field, Select, TextInput } from '@/components/ui/Form'
 import { Modal } from '@/components/ui/Modal'
 
@@ -78,9 +78,9 @@ export function ProductModal({
             />
           </Field>
         </div>
-        {draft.quantity > 0 && draft.quantity < 10 && (
+        {draft.quantity > 0 && draft.quantity < LOW_STOCK_THRESHOLD && (
           <p className="rounded-lg bg-warning-bg px-3 py-2 text-xs font-medium text-warning">
-            This quantity is below 10 — the product will be highlighted as low stock.
+            This quantity is below {LOW_STOCK_THRESHOLD} — the product will be highlighted as low stock.
           </p>
         )}
         <div className="flex justify-end gap-2 pt-1">

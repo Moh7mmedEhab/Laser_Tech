@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MoreHorizontal, Plus, Search } from 'lucide-react'
-import { PRODUCTS } from '@/data/products'
 import { LOW_STOCK_THRESHOLD, type Product } from '@/data/types'
+import { createProduct, deleteProduct, productStore, updateProduct, useResource } from '@/api/data'
 import { formatEGP } from '../../../utils/format'
 import { Button, StatusPill } from '@/components/ui/Form'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -17,6 +17,8 @@ const emptyProduct = (): Product => ({
   category: 'Laser Tubes',
   price: 0,
   quantity: 0,
+  createdAt: '',
+  updatedAt: '',
 })
 
 const stockStatus = (q: number) =>
@@ -27,12 +29,14 @@ const stockStatus = (q: number) =>
       : { tone: 'success' as const, label: 'In stock' }
 
 export function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(PRODUCTS)
+  const { data: products, status, error, refresh } = useResource(productStore)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Product | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [deleting, setDeleting] = useState<Product | null>(null)
+  const [busy, setBusy] = useState<'' | 'save' | 'delete'>('')
+  const [actionError, setActionError] = useState('')
   const [menuRow, setMenuRow] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
@@ -56,13 +60,48 @@ export function ProductsPage() {
     setFormOpen(true)
     setMenuRow(null)
   }
-  const save = (product: Product) => {
-    setProducts((prev) =>
-      product.id
-        ? prev.map((p) => (p.id === product.id ? product : p))
-        : [...prev, { ...product, id: `p-${Date.now()}` }],
+
+  /** Create or update via the API, then reconcile the store. */
+  const save = async (product: Product) => {
+    setBusy('save')
+    setActionError('')
+    try {
+      const { id, createdAt: _c, updatedAt: _u, ...data } = product
+      const saved = id
+        ? await updateProduct(product.id, data)
+        : await createProduct(data)
+      productStore.upsert(saved)
+      setFormOpen(false)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not save the product')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const remove = async (product: Product) => {
+    setBusy('delete')
+    setActionError('')
+    try {
+      await deleteProduct(product.id)
+      productStore.remove(product.id)
+      setDeleting(null)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not delete the product')
+      setDeleting(null)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  if (status === 'error' && products.length === 0) {
+    return (
+      <div className="mx-auto max-w-md rounded-card bg-surface p-8 text-center shadow-card">
+        <p className="text-sm font-semibold text-ink">Couldn't load products</p>
+        <p className="mt-1 text-sm text-muted">{error}</p>
+        <Button className="mt-4" onClick={refresh}>Retry</Button>
+      </div>
     )
-    setFormOpen(false)
   }
 
   return (
@@ -71,14 +110,21 @@ export function ProductsPage() {
         <div>
           <h2 className="text-2xl font-semibold text-ink">Products</h2>
           <p className="mt-1 text-sm text-muted">
-            {products.length} products ·{' '}
+            {status === 'loading' ? 'Loading…' : `${products.length} products ·`}{' '}
             <span className="font-medium text-warning">{lowStockCount} low on stock</span>
           </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={openCreate} disabled={busy === 'save'}>
           <Plus size={16} /> Add product
         </Button>
       </header>
+
+      {actionError && (
+        <p className="rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">{actionError}</p>
+      )}
+      {status === 'loading' && products.length > 0 && (
+        <p className="text-xs text-muted">Refreshing data…</p>
+      )}
 
       <div className="rounded-card bg-surface shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
@@ -194,10 +240,7 @@ export function ProductsPage() {
         <ConfirmDialog
           title="Delete product"
           message={`Delete “${deleting.name}” permanently? This cannot be undone.`}
-          onConfirm={() => {
-            setProducts((prev) => prev.filter((p) => p.id !== deleting.id))
-            setDeleting(null)
-          }}
+          onConfirm={() => void remove(deleting)}
           onCancel={() => setDeleting(null)}
         />
       )}

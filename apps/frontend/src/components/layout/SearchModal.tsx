@@ -7,7 +7,7 @@ const destinations = [
   { label: 'Products', to: '/products' },
   { label: 'Bills', to: '/bills' },
   { label: 'Users', to: '/users' },
-  { label: 'Daily Notes', to: '/daily-notes' },
+  { label: 'Daily Notes', to: '/notes' },
   { label: 'Settings', to: '/settings' },
 ]
 

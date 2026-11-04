@@ -1,22 +1,32 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Check } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import logo from '@/assets/logo.svg'
+import { authStore } from '@/api/auth'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim() || password.length < 6) {
-      setError('Enter a valid email and a password of at least 6 characters.')
+    if (!identifier.trim() || password.length < 8) {
+      setError('Enter your username or email and a password of at least 8 characters.')
       return
     }
-    // Frontend-only: navigation stands in for authentication until the API exists.
-    navigate('/')
+    setBusy(true)
+    setError('')
+    try {
+      const user = await authStore.login({ identifier: identifier.trim(), password })
+      navigate(user.role === 'USER' ? '/' : '/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not sign in')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -30,15 +40,15 @@ export function LoginPage() {
           <p className="mt-1 text-sm text-muted">Sign in to your workspace</p>
         </div>
 
-        <form onSubmit={submit} className="mt-7 space-y-4">
+        <form onSubmit={(e) => void submit(e)} className="mt-7 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">Email</span>
+            <span className="mb-1.5 block text-xs font-semibold text-muted">Username or email</span>
             <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@lasertech.com"
+              type="text"
+              autoComplete="username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="admin or you@lasertech.com"
               className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-primary focus:bg-surface"
             />
           </label>
@@ -60,15 +70,17 @@ export function LoginPage() {
 
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
           >
+            {busy && <Loader2 size={15} className="animate-spin" />}
             Sign in
           </button>
         </form>
 
         <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted">
           <Check size={13} className="text-success" />
-          Demo build — any email and 6+ character password works.
+          Signed-in sessions live until you log out.
         </p>
       </div>
     </div>

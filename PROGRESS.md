@@ -27,16 +27,16 @@ Build the Laser Tech admin dashboard frontend: statistics home with graphs, full
 
 ## Tests done
 
-- Lint (oxlint): clean
-- Build/typecheck (`tsc -b && vite build`): clean, bundle code-split (main ~317KB + lazy StatsPage ~419KB)
-- Browser smoke test: all routes, zero console/page errors; products search "tube" filters to 3 rows
+- Lint (oxlint): clean (frontend + backend)
+- Build/typecheck (`tsc -b && vite build`): clean, bundle code-split (main ~326KB + lazy StatsPage ~420KB)
+- Live smoke test (frontend + backend dev servers): login → session cookie → `PATCH /auth/me`, product create/patch/delete via API, Socket.IO `product:changed` received by a cookie-authed client (update + delete), Vite proxy serves `/api` and `/socket.io` same-origin
+- Remaining tasks
 
-## Remaining tasks
-
-- Wire frontend to the backend API (replace `src/data/` mocks with the `/api/v1/...` endpoints + socket events)
+- [x] Wire frontend to the backend API (`src/api/{client,socket,data,auth}.ts` stores + command fns; all pages live: Products, Bills (+items drawer), Users, Notes, Stats, Settings, Login)
+- [x] Realtime updates via Socket.IO events → store invalidation (bills also invalidate products for stock)
 - Dark mode, RTL (deferred by user)
-- Test runner setup (test folders are placeholders)
-- Backend: contract tests per endpoint as the frontend wiring proceeds
+- Test runner setup for frontend (test folders are placeholders)
+- Browser-level smoke test of every page (node-level API flow verified)
 
 ## Backend progress (apps/backend)
 

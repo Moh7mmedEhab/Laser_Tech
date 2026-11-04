@@ -13,7 +13,7 @@ const items = [
   { label: 'Products', to: '/products', icon: Box },
   { label: 'Bills', to: '/bills', icon: FileText },
   { label: 'Users', to: '/users', icon: Users },
-  { label: 'Daily Notes', to: '/daily-notes', icon: Calendar },
+  { label: 'Daily Notes', to: '/notes', icon: Calendar },
 ] as const
 
 export function Sidebar() {

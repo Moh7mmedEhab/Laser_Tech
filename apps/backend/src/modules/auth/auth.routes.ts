@@ -11,6 +11,7 @@ authRoutes.post('/logout', controller.logout)
 // Everything below requires a valid session cookie.
 authRoutes.use(requireAuth)
 authRoutes.get('/me', controller.me)
+authRoutes.patch('/me', controller.updateMe)
 authRoutes.patch('/password', controller.changePassword)
 authRoutes.get('/sessions', controller.listSessions)
 authRoutes.delete('/sessions', controller.revokeAllOtherSessions)

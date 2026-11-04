@@ -16,6 +16,18 @@ export const changePasswordSchema = z
   })
   .strict()
 
+/** Self-service profile edits: no role/password fields here. */
+export const updateSelfSchema = z
+  .object({
+    username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_.-]+$/, 'Only letters, digits, dot, dash and underscore').optional(),
+    email: z.email().trim().toLowerCase().max(120).optional(),
+    phone: z.string().trim().min(7).max(20).regex(/^[0-9+\-\s()]+$/, 'Only digits and + - ( ) separators').optional(),
+  })
+  .strict()
+  .refine((u) => Object.values(u).some((v) => v !== undefined), {
+    error: 'Provide at least one field',
+  })
+
 export const revokeSessionSchema = z
   .object({
     id: z.cuid(),

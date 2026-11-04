@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Bell, ChevronDown, LogOut, Search, Settings, User } from 'lucide-react'
 import { SearchModal } from './SearchModal'
-
-const user = { name: 'Devon Lane', role: 'Admin' }
+import { authStore, useAuth } from '@/api/auth'
+import { roleLabel } from '@/data/types'
 
 export function Topbar() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -21,7 +22,10 @@ export function Topbar() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const logout = () => navigate('/login')
+  const logout = async () => {
+    await authStore.logout()
+    navigate('/login')
+  }
 
   return (
     <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-line bg-surface px-6">
@@ -65,11 +69,11 @@ export function Topbar() {
             className="flex items-center gap-3 rounded-lg py-1.5 pl-1.5 pr-3 transition-colors hover:bg-canvas"
           >
             <span className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
-              {user.name.split(' ').map((w) => w[0]).join('')}
+              {user?.username.slice(0, 2).toUpperCase() ?? '—'}
             </span>
             <span className="text-left leading-tight">
-              <span className="block text-sm font-semibold text-ink">{user.name}</span>
-              <span className="block text-xs text-muted">{user.role}</span>
+              <span className="block text-sm font-semibold text-ink">{user?.username}</span>
+              <span className="block text-xs text-muted">{user ? roleLabel(user.role) : ''}</span>
             </span>
             <ChevronDown size={16} className="text-muted" />
           </button>

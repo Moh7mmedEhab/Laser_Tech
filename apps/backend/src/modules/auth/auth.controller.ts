@@ -6,8 +6,10 @@ import {
   changePasswordSchema,
   loginSchema,
   revokeSessionSchema,
+  updateSelfSchema,
 } from './auth.validation.js'
 import type { AuthedRequest } from './auth.types.js'
+import * as userService from '../users/users.service.js'
 
 function clientMeta(req: Request) {
   return { ip: req.ip ?? null, userAgent: req.headers['user-agent'] ?? null }
@@ -32,6 +34,14 @@ export async function logout(req: Request, res: Response) {
 export function me(req: Request, res: Response) {
   const authed = req as AuthedRequest
   res.json({ user: authed.auth?.user })
+}
+
+export async function updateMe(req: Request, res: Response) {
+  const authed = req as AuthedRequest
+  if (!authed.auth) throw new AppError(401, 'UNAUTHORIZED', 'Authentication required')
+
+  const parsed = updateSelfSchema.parse(req.body)
+  res.json({ user: await userService.updateUser(authed.auth.user.id, parsed) })
 }
 
 export async function changePassword(req: Request, res: Response) {

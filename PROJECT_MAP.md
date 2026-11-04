@@ -21,17 +21,20 @@
 | `src/components/stats/` | `CategoryDonut`, `WeeklyBillsBar` charts |
 | `src/components/ui/` | `Modal`, `Drawer`, `Form` (Button/Input/Select/StatusPill), `ConfirmDialog`, `Pagination` |
 | `src/pages/` | Route barrel files exporting from `src/pages/<route>/` folders |
-| `src/pages/products/` | Products table + search + low-stock rows; `ProductModal`, `ProductActionsMenu` |
-| `src/pages/bills/` | Bills table + search + status filter; `BillDrawer` (create/edit), view modal |
-| `src/pages/users/` | Users table with avatars/roles, active toggle; `UserModal` |
-| `src/pages/notes/` | Daily notes card grid; `NoteModal` |
-| `src/pages/StatsPage.tsx` | Statistics: 4 stat cards, revenue area, donut, weekly bars |
-| `src/pages/SettingsPage.tsx` | Profile name/email + avatar upload; password change |
-| `src/pages/LoginPage.tsx` | Standalone centered login card |
-| `src/data/` | Typed mock data: `types`, `products`, `bills`, `users` (+notes), `stats`; `LOW_STOCK_THRESHOLD` |
+| `src/pages/products/` | Products table + search + low-stock rows (live API); `ProductModal`, `ProductActionsMenu` |
+| `src/pages/bills/` | Bills table + search (live API); `BillDrawer` (client + product line-items save `{userId, notes, items}`), view modal |
+| `src/pages/users/` | Users table with avatars/roles/phones (live API); `UserModal` (username/email/phone/role/password) |
+| `src/pages/notes/` | Daily notes card grid (live API); `NoteModal` (content, amount, optional subject user) |
+| `src/pages/StatsPage.tsx` | Statistics computed from API data: stat cards, revenue trend, category donut, weekly bills |
+| `src/pages/SettingsPage.tsx` | Self profile via `PATCH /api/v1/auth/me` + password change; avatar upload is local-only |
+| `src/pages/LoginPage.tsx` | Standalone centered login card (real session login) |
+| `src/api/` | `client` (fetch wrapper, ApiError, 401→logout), `socket` (Socket.IO singleton), `data` (ResourceStores + command fns + `useResource`), `auth` (authStore: init/login/logout/updateProfile/changePassword) |
+| `src/data/types.ts` | Live API contract types (Role/PRODUCT/BILL/NOTE/USER), `LOW_STOCK_THRESHOLD`, role labels |
 | `utils/format.ts` | `formatEGP`, `formatDate`, `todayISO` (plain helpers, no framework imports) |
 | `config/` | Reserved (empty until backend config is added) |
 | `tests/unit` `tests/integration` `tests/security` | Reserved placeholders; no test runner installed yet |
+
+**Wiring notes:** Vite dev proxies `/api` + `/socket.io` (ws) → `http://localhost:4000`, so session cookies are same-origin. State is `useSyncExternalStore` stores (one per collection) invalidated by Socket.IO events (`product:*`, `bill:*`, `note:*`); bills events also refresh products because stock changes. Mutations go through exported command fns (`createProduct`, `updateBill`, …) which upsert the response into the store. `authStore.init()` runs once in `App`'s guard; a 401 anywhere drops to `/login`.
 
 ### `apps/backend/`
 
