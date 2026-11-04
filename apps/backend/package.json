@@ -13,7 +13,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "test:security": "vitest run tests/security"
+    "test:security": "vitest run tests/security",
+    "seed": "tsx scripts/seed.ts"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

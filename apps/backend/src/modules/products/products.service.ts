@@ -1,4 +1,5 @@
 import { mapPrismaKnownError } from '../../lib/prisma-errors.js'
+import { emit } from '../../lib/events.js'
 import { notFound } from '../../errors/app.errors.js'
 import { LOW_STOCK_THRESHOLD } from './products.constants.js'
 import * as repo from './products.repository.js'
@@ -22,7 +23,9 @@ export async function getProduct(id: string) {
 
 export async function createProduct(input: CreateProductInput) {
   try {
-    return toMoney(await repo.createProduct(input))
+    const product = toMoney(await repo.createProduct(input))
+    emit('product:changed', { productId: product.id, action: 'created' })
+    return product
   } catch (err) {
     throw mapPrismaKnownError(err, { entity: 'product SKU' })
   }
@@ -31,7 +34,9 @@ export async function createProduct(input: CreateProductInput) {
 export async function updateProduct(id: string, input: UpdateProductInput) {
   await getProduct(id) // notFound guard before the unique-constraint.mapper
   try {
-    return toMoney(await repo.updateProduct(id, input))
+    const product = toMoney(await repo.updateProduct(id, input))
+    emit('product:changed', { productId: id, action: 'updated' })
+    return product
   } catch (err) {
     throw mapPrismaKnownError(err, { entity: 'product SKU' })
   }
@@ -41,7 +46,8 @@ export async function deleteProduct(id: string) {
   const product = await repo.findProductById(id)
   if (!product) throw notFound('Product')
   try {
-    return await repo.deleteProduct(id)
+    await repo.deleteProduct(id)
+    emit('product:changed', { productId: id, action: 'deleted' })
   } catch (err) {
     // P2003 → bill items still reference the product; keep history intact.
     throw mapPrismaKnownError(err, { entity: 'product' })
