@@ -52,5 +52,5 @@ export const api = {
   get: <T>(path: string) => request<T>('GET', path) as Promise<T>,
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body) as Promise<T>,
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body) as Promise<T>,
-  del: <T>(path: string) => request<T>('DELETE', path) as Promise<T>,
+  del: <T>(path: string, body?: unknown) => request<T>('DELETE', path, body) as Promise<T>,
 }

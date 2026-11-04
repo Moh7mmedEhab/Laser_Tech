@@ -57,6 +57,15 @@ export const listUsersQuerySchema = z
 
 export const idParamSchema = z.object({ id: z.cuid() })
 
+/**
+ * DELETE /users/:id body: the caller must confirm with their own password
+ * because a confirmed delete cascades to the user's bills and notes.
+ */
+export const deleteUserSchema = z
+  .object({ password: z.string().min(1).max(200) })
+  .strict()
+
 export type CreateUserInput = z.infer<typeof createUserSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>
+export type DeleteUserInput = z.infer<typeof deleteUserSchema>

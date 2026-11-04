@@ -29,6 +29,8 @@ export type ApiUser = {
   updatedAt: string
   /** Populated by the users list endpoint. */
   billCount?: number
+  /** Bills/note counts feed the delete-confirmation dialog. */
+  noteCount?: number
 }
 
 export type ApiMe = Pick<ApiUser, 'id' | 'username' | 'email' | 'role'> & { phone?: string }

@@ -38,6 +38,8 @@ Build the Laser Tech admin dashboard frontend: statistics home with graphs, full
 - [x] New: server-side filters + sort/order (products: category/lowStock/price+/date range; bills: user/admin/amount range/date range; users: role/date range; notes: date range), `order` override on all sorts
 - [x] New: bill print tab `/bills/:id/print` with auto print dialog
 - [x] New: Settings — active devices (`GET/DELETE /auth/sessions`) + login history card
+- [x] New: password-confirmed user delete with cascade (owned bills deleted + stock returned; subject notes removed; issued bills/authored notes repoint to the deleting admin); `DELETE /users/:id` now requires `{ password }`
+- [x] New: admin credentials live in `ADMIN_*` vars of `apps/backend/.env`; `npm run seed -w apps/backend` resets the admin to match (used for login any time)
 - Dark mode, RTL (deferred by user)
 - Test runner setup for frontend (test folders are placeholders)
 - Browser-level smoke test of every page (node-level API flow + socket verified)

@@ -4,7 +4,7 @@
 
 - Frontend: `npm run dev:frontend`, build via root `npm run build` (runs both workspaces; frontend build is `tsc -b && vite build` — it IS the frontend typecheck).
 - Backend (`@laser/backend`): `npm run dev:backend`; `npm run build -w apps/backend` (`tsc -p tsconfig.json`); `npm run lint -w apps/backend` (oxlint); tests `npm run test:{unit,integration,security} -w apps/backend` (vitest + supertest against the Neon **backend-test** branch — never production).
-- Seed the first admin: `npx tsx scripts/seed.ts --username admin --email ... --phone ... --password ...` inside `apps/backend` (or `npm run seed -w apps/backend -- --args`).
+- Seed/reset the main admin: `npm run seed -w apps/backend` — defaults come from `ADMIN_*` vars in `apps/backend/.env` (edit the password there, re-run, log in; CLI flags still override).
 - Verification order: lint then build (both workspaces). Both must pass before committing.
 
 ## Toolchain gotchas

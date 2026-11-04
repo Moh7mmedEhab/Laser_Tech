@@ -7,7 +7,7 @@ import { Button, StatusPill, TextInput, Select, Field } from '@/components/ui/Fo
 import { LoadingDots } from '@/components/ui/Loading'
 import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { Modal } from '@/components/ui/Modal'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { PasswordConfirmDialog } from '@/components/ui/PasswordConfirmDialog'
 
 const PAGE_SIZE = 8
 
@@ -130,16 +130,17 @@ export function UsersPage() {
     }
   }
 
-  const remove = async (u: ApiUser) => {
+  /** Password-confirmed delete; the dialog stays open on failure. */
+  const [deleteError, setDeleteError] = useState('')
+  const remove = async (u: ApiUser, password: string) => {
     setBusy(true)
-    setActionError('')
+    setDeleteError('')
     try {
-      await deleteUser(u.id)
+      await deleteUser(u.id, password)
       userStore.remove(u.id)
       setDeleting(null)
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not delete the user')
-      setDeleting(null)
+      setDeleteError(err instanceof Error ? err.message : 'Could not delete the user')
     } finally {
       setBusy(false)
     }
@@ -306,11 +307,25 @@ export function UsersPage() {
         <UserModal user={editing} onSave={(form) => void save(form)} onClose={() => setFormOpen(false)} />
       )}
       {deleting && (
-        <ConfirmDialog
+        <PasswordConfirmDialog
           title="Delete user"
-          message={`Remove ${deleting.username} (${deleting.email})? This cannot be undone.`}
-          onConfirm={() => void remove(deleting)}
-          onCancel={() => setDeleting(null)}
+          message={
+            `Removing ${deleting.username} (${deleting.email}) cannot be undone.\n` +
+            (deleting.billCount
+              ? `${deleting.billCount} of their bill${deleting.billCount === 1 ? '' : 's'} will be deleted and the stock returned. `
+              : '') +
+            (deleting.noteCount
+              ? `${deleting.noteCount} of their note${deleting.noteCount === 1 ? '' : 's'} will be deleted. `
+              : '') +
+            'Type your admin password to confirm.'
+          }
+          busy={busy}
+          error={deleteError}
+          onConfirm={(password) => void remove(deleting, password)}
+          onCancel={() => {
+            setDeleting(null)
+            setDeleteError('')
+          }}
         />
       )}
     </div>

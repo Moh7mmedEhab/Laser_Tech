@@ -37,7 +37,7 @@ export function listUsers(query: ListUsersQuery) {
   return prisma.$transaction([
     prisma.user.findMany({
       where,
-      select: { ...USER_PUBLIC_FIELDS, _count: { select: { bills: true } } },
+      select: { ...USER_PUBLIC_FIELDS, _count: { select: { bills: true, notesAbout: true } } },
       // Explicit client order wins; otherwise the column's server default.
       orderBy: order ? { [SORT_FIELDS[sort]]: order } : SORTS[sort],
       skip: (page - 1) * limit,
@@ -56,6 +56,11 @@ export function findUserById(id: string) {
   )
 }
 
+/** Only the caller's bcrypt hash, for delete-confirmation compares. */
+export function findUserHash(id: string) {
+  return prisma.user.findUnique({ where: { id }, select: { passwordHash: true } })
+}
+
 export function countAdminsExcluding(userId: string) {
   return prisma.user.count({ where: { role: 'ADMIN', id: { not: userId } } })
 }
@@ -66,8 +71,4 @@ export function createUser(data: Omit<CreateUserInput, 'password'> & { passwordH
 
 export function updateUser(id: string, data: UpdateUserInput & { passwordHash?: string }) {
   return prisma.user.update({ where: { id }, data, select: USER_PUBLIC_FIELDS })
-}
-
-export function deleteUser(id: string) {
-  return prisma.user.delete({ where: { id }, select: USER_PUBLIC_FIELDS })
 }

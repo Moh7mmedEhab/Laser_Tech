@@ -7,25 +7,30 @@ import { ROLES } from '../src/modules/users/users.constants.js'
  * Seeds or resets the FIRST ADMIN account. Idempotent: re-running with the
  * same identifier updates username/email/phone/password/role of that user.
  *
- *   npm run dev -w apps/backend          # normal server
- *   npm run seed -w apps/backend -- --username admin --email admin@lasertech.com --phone +201000000000 --password 'Str0ngPass!'
+ * Defaults come from the ADMIN_* variables in .env, so the login the seed
+ * produces always matches the values you keep there: edit the .env password,
+ * re-run the seed, log in. CLI flags override any variable:
+ *
+ *   npm run seed -w apps/backend                 # reset admin from .env
+ *   npm run seed -w apps/backend -- --password 'NewPass!'
  */
-function arg(name: string, fallback?: string): string {
+function arg(name: string, envVar: string | undefined, fallback?: string): string {
   const i = process.argv.indexOf(name)
   const value = i !== -1 ? process.argv[i + 1] : undefined
-  if (!value && !fallback) {
+  const fromEnv = envVar ? process.env[envVar] : undefined
+  if (!value && !fromEnv && !fallback) {
     console.error(`Missing required arg ${name}`)
     process.exit(1)
   }
-  return value ?? fallback!
+  return value ?? fromEnv ?? fallback!
 }
 
 async function main() {
-  const username = arg('--username', 'admin')
-  const email = arg('--email', 'admin@lasertech.com').toLowerCase()
-  const phone = arg('--phone', '+201000000000')
-  const password = arg('--password')
-  const role = arg('--role', 'ADMIN')
+  const username = arg('--username', 'ADMIN_USERNAME', 'admin')
+  const email = arg('--email', 'ADMIN_EMAIL', 'admin@lasertech.com').toLowerCase()
+  const phone = arg('--phone', 'ADMIN_PHONE', '+201000000000')
+  const password = arg('--password', 'ADMIN_PASSWORD')
+  const role = arg('--role', undefined, 'ADMIN')
 
   if (!ROLES.includes(role as (typeof ROLES)[number])) {
     throw new Error(`Invalid role ${role}; expected one of ${ROLES.join(', ')}`)

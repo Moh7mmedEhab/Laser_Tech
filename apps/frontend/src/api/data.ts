@@ -237,7 +237,8 @@ export const createUser = (data: {
 }) => api.post<{ user: ApiUser }>('/users', data).then((r) => r.user)
 export const updateUser = (id: string, data: Partial<Omit<ApiUser, 'id'> & { password: string }>) =>
   api.patch<{ user: ApiUser }>(`/users/${id}`, data).then((r) => r.user)
-export const deleteUser = (id: string) => api.del(`/users/${id}`)
+/** Destructive: cascades to the user's bills (restocked) and notes. */
+export const deleteUser = (id: string, password: string) => api.del(`/users/${id}`, { password })
 
 export const createNote = (data: { content: string; amount?: number | null; userId?: string | null }) =>
   api.post<{ note: Note }>('/notes', { userId: null, ...data })

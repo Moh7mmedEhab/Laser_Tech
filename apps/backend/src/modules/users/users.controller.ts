@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import type { AuthedRequest } from '../auth/auth.types.js'
 import {
   createUserSchema,
+  deleteUserSchema,
   idParamSchema,
   listUsersQuerySchema,
   updateUserSchema,
@@ -38,7 +39,8 @@ export async function update(req: Request, res: Response) {
 export async function remove(req: Request, res: Response) {
   const callerId = requireAdmin(req).id
   const { id } = idParamSchema.parse(req.params)
+  const { password } = deleteUserSchema.parse(req.body)
 
-  await service.deleteUser(id, callerId)
+  await service.deleteUser(id, callerId, password)
   res.status(204).send()
 }
