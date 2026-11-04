@@ -81,7 +81,7 @@ export function FilterBar({
       ))}
 
       {dirty && (
-        <Button variant="ghost" className="!px-3" onClick={onReset} title="Clear filters">
+        <Button variant="ghost" className="px-3!" onClick={onReset} title="Clear filters">
           <RotateCcw size={14} /> Reset
         </Button>
       )}

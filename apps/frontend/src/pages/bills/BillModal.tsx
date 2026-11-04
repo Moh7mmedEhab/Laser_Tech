@@ -114,7 +114,11 @@ export function BillModal({
                 min={1}
                 required
                 aria-label="Quantity"
-                className="w-20 shrink-0"
+                // Trailing "!" = Tailwind v4 important, so w-20! beats the
+                // shared input base's w-full (plain w-20 loses the CSS order
+                // battle and the input steals the whole row, squashing the
+                // product select).
+                className="w-20! shrink-0"
                 value={item.quantity}
                 onChange={(e) => setItem(index, { quantity: Number(e.target.value) })}
               />
