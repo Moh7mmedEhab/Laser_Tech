@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import { ZodError } from 'zod'
-import { AppError } from '../errors/app.errors'
-import { isProduction } from '../config/env'
+import { AppError } from '../errors/app.errors.js'
+import { isProduction } from '../config/env.js'
 
 type KnownError = { status?: number; code?: string }
 

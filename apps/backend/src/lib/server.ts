@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
 import { Server as SocketServer } from 'socket.io'
-import { createApp } from './app'
-import { env, isProduction } from '../config/env'
+import { createApp } from './app.js'
+import { env, isProduction } from '../config/env.js'
 
 export function startServer() {
   const app = createApp()
