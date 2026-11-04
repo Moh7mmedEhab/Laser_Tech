@@ -4,6 +4,7 @@ import { roleLabel, type ApiMe } from '@/data/types'
 import { authStore, listLoginHistory, listSessions, revokeAllOtherSessions, useAuth, type SessionRow } from '@/api/auth'
 import { Button, Field, TextInput } from '@/components/ui/Form'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { LoadingDots } from '@/components/ui/Loading'
 import { formatDate } from '../../utils/format'
 
 type ProfileForm = { username: string; email: string; phone: string }
@@ -312,6 +313,11 @@ function SessionsCard() {
           </li>
         ))}
         {sessions?.length === 0 && <li className="py-3 text-sm text-muted">No active sessions.</li>}
+        {sessions === null && (
+          <li className="flex items-center gap-2 py-3 text-sm text-muted">
+            <LoadingDots /> Loading sessions…
+          </li>
+        )}
       </ul>
 
       {confirming && (
@@ -364,6 +370,15 @@ function LoginHistoryCard() {
           {rows?.length === 0 && (
             <tr>
               <td colSpan={3} className="py-3 text-muted">No recorded logins yet.</td>
+            </tr>
+          )}
+          {rows === null && (
+            <tr>
+              <td colSpan={3}>
+                <span className="flex items-center gap-2 py-3 text-sm text-muted">
+                  <LoadingDots /> Loading history…
+                </span>
+              </td>
             </tr>
           )}
         </tbody>

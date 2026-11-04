@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { LoadingLabel } from '@/components/ui/Loading'
 import { authStore, useAuth } from '@/api/auth'
 import { LoginPage } from '@/pages/LoginPage'
 
@@ -38,8 +39,8 @@ function Guard({ children }: { children: React.ReactNode }) {
 
   if (!settled) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas text-sm text-muted">
-        Loading…
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <LoadingLabel label="Checking session" />
       </div>
     )
   }
@@ -51,7 +52,7 @@ function Guard({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <Guard>
-      <Suspense fallback={<div className="p-10 text-sm text-muted">Loading…</div>}>
+      <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center"><LoadingLabel /></div>}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           {/* Standalone print view — no app chrome, opens its own tab. */}

@@ -4,6 +4,7 @@ import type { Bill } from '@/data/types'
 import { billStore, createBill, deleteBill, productStore, updateBill, userStore, useResource } from '@/api/data'
 import { formatEGP, formatDate } from '../../../utils/format'
 import { Button } from '@/components/ui/Form'
+import { LoadingDots } from '@/components/ui/Loading'
 import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -142,7 +143,9 @@ export function BillsPage() {
         <p className="rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">{actionError}</p>
       )}
       {status === 'loading' && bills.length > 0 && (
-        <p className="text-xs text-muted">Refreshing data…</p>
+        <p className="flex items-center gap-2 text-xs text-muted">
+          <LoadingDots /> Refreshing data…
+        </p>
       )}
 
       <div className="rounded-card bg-surface shadow-card">
@@ -238,7 +241,13 @@ export function BillsPage() {
             {bills.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                  {status === 'loading' ? 'Loading bills…' : 'No bills match your filters'}
+                  {status === 'loading' ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <LoadingDots /> Loading
+                    </span>
+                  ) : (
+                    'No bills match your filters'
+                  )}
                 </td>
               </tr>
             )}

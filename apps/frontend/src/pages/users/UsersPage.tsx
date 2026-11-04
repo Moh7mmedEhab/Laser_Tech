@@ -4,6 +4,7 @@ import { ROLE_OPTIONS, roleLabel, type ApiUser, type Role } from '@/data/types'
 import { createUser, deleteUser, updateUser, userStore, useResource } from '@/api/data'
 import { formatDate } from '../../../utils/format'
 import { Button, StatusPill, TextInput, Select, Field } from '@/components/ui/Form'
+import { LoadingDots } from '@/components/ui/Loading'
 import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -170,7 +171,9 @@ export function UsersPage() {
         <p className="rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">{actionError}</p>
       )}
       {status === 'loading' && users.length > 0 && (
-        <p className="text-xs text-muted">Refreshing data…</p>
+        <p className="flex items-center gap-2 text-xs text-muted">
+          <LoadingDots /> Refreshing data…
+        </p>
       )}
 
       <div className="rounded-card bg-surface shadow-card">
@@ -266,7 +269,13 @@ export function UsersPage() {
             {visible.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                  {status === 'loading' ? 'Loading users…' : 'No users match your filters'}
+                  {status === 'loading' ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <LoadingDots /> Loading
+                    </span>
+                  ) : (
+                    'No users match your filters'
+                  )}
                 </td>
               </tr>
             )}

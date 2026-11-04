@@ -5,6 +5,7 @@ import { LOW_STOCK_THRESHOLD } from '@/data/types'
 import { billStore, productStore, userStore, useResource } from '@/api/data'
 import { useAuth } from '@/api/auth'
 import { formatEGP } from '../../utils/format'
+import { LoadingLabel } from '@/components/ui/Loading'
 import { CategoryDonut, type CategorySlice } from '@/components/stats/CategoryDonut'
 import { WeeklyBillsBar, type WeeklyBucket } from '@/components/stats/WeeklyBillsBar'
 
@@ -123,7 +124,9 @@ export function StatsPage() {
       </section>
 
       {billStatus === 'loading' && bills.length === 0 ? (
-        <p className="text-sm text-muted">Loading statistics…</p>
+        <div className="flex min-h-40 items-center justify-center">
+          <LoadingLabel label="Loading statistics" />
+        </div>
       ) : (
         <section className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-card bg-surface p-5 shadow-card xl:col-span-2">

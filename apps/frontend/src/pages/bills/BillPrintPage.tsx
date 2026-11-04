@@ -3,6 +3,7 @@ import { useParams } from 'react-router'
 import { api } from '@/api/client'
 import type { Bill, Product } from '@/data/types'
 import { formatEGP, formatDate } from '../../../utils/format'
+import { LoadingLabel } from '@/components/ui/Loading'
 import logo from '@/assets/logo.svg'
 
 const productName = (productId: string, products: Product[]) =>
@@ -37,7 +38,11 @@ export function BillPrintPage() {
   }, [id])
 
   if (!bill) {
-    return <div className="p-10 text-sm text-muted">Preparing bill for printing…</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingLabel label="Preparing bill for printing" />
+      </div>
+    )
   }
 
   return (

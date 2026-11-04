@@ -4,6 +4,7 @@ import { LOW_STOCK_THRESHOLD, type Product } from '@/data/types'
 import { createProduct, deleteProduct, productStore, updateProduct, useResource } from '@/api/data'
 import { formatEGP } from '../../../utils/format'
 import { Button, StatusPill } from '@/components/ui/Form'
+import { LoadingDots } from '@/components/ui/Loading'
 import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ProductModal } from './ProductModal'
@@ -141,8 +142,8 @@ export function ProductsPage() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold text-ink">Products</h2>
-          <p className="mt-1 text-sm text-muted">
-            {status === 'loading' ? 'Loading…' : `${products.length} products ·`}{' '}
+          <p className="mt-1 flex items-center gap-2 text-sm text-muted">
+            {status === 'loading' ? <LoadingDots /> : <>{products.length} products ·</>}{' '}
             <span className="font-medium text-warning">{lowStockCount} low on stock</span>
           </p>
         </div>
@@ -155,7 +156,9 @@ export function ProductsPage() {
         <p className="rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">{actionError}</p>
       )}
       {status === 'loading' && products.length > 0 && (
-        <p className="text-xs text-muted">Refreshing data…</p>
+        <p className="flex items-center gap-2 text-xs text-muted">
+          <LoadingDots /> Refreshing data…
+        </p>
       )}
 
       <div className="rounded-card bg-surface shadow-card">
@@ -242,7 +245,13 @@ export function ProductsPage() {
             {visible.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                  {status === 'loading' ? 'Loading products…' : 'No products match the filters'}
+                  {status === 'loading' ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <LoadingDots /> Loading
+                    </span>
+                  ) : (
+                    'No products match the filters'
+                  )}
                 </td>
               </tr>
             )}

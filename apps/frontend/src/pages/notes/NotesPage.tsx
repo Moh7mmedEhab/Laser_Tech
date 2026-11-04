@@ -4,6 +4,7 @@ import type { Note } from '@/data/types'
 import { createNote, deleteNote, noteStore, updateNote, userStore, useResource } from '@/api/data'
 import { formatEGP, formatDate } from '../../../utils/format'
 import { Button } from '@/components/ui/Form'
+import { LoadingDots } from '@/components/ui/Loading'
 import { FilterBar, type FilterValues } from '@/components/ui/FilterBar'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { NoteModal } from './NoteModal'
@@ -90,7 +91,9 @@ export function NotesPage() {
         <p className="rounded-lg bg-danger-bg px-3 py-2 text-xs font-medium text-danger">{actionError}</p>
       )}
       {status === 'loading' && notes.length > 0 && (
-        <p className="text-xs text-muted">Refreshing data…</p>
+        <p className="flex items-center gap-2 text-xs text-muted">
+          <LoadingDots /> Refreshing data…
+        </p>
       )}
 
       <div className="rounded-card bg-surface shadow-card">
@@ -143,7 +146,13 @@ export function NotesPage() {
         ))}
         {notes.length === 0 && (
           <p className="col-span-full rounded-card bg-surface p-10 text-center text-sm text-muted shadow-card">
-            {status === 'loading' ? 'Loading notes…' : 'No notes yet — add the first one.'}
+            {status === 'loading' ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <LoadingDots /> Loading
+              </span>
+            ) : (
+              'No notes yet — add the first one.'
+            )}
           </p>
         )}
       </div>
