@@ -1,5 +1,5 @@
 import { prisma } from '../../config/db.js'
-import { AppError, forbidden, notFound } from '../../errors/app.errors.js'
+import { AppError, notFound } from '../../errors/app.errors.js'
 import { mapPrismaKnownError } from '../../lib/prisma-errors.js'
 import { emit } from '../../lib/events.js'
 import { hashPassword, verifyPassword } from '../auth/auth.service.js'
@@ -76,7 +76,10 @@ export async function updateUser(id: string, input: UpdateUserInput) {
 const TX_OPTIONS = { timeout: 60_000, maxWait: 15_000 } as const
 
 export async function deleteUser(id: string, callerId: string, password: string) {
-  if (id === callerId) throw forbidden()
+  if (id === callerId) {
+    // An admin can never remove their own account (also enforced client-side).
+    throw new AppError(403, 'SELF_DELETE', 'You cannot delete your own account')
+  }
 
   const [existing, caller] = await Promise.all([repo.findUserById(id), repo.findUserHash(callerId)])
   if (!existing) throw notFound('User')

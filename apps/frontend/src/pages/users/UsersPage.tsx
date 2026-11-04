@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ROLE_OPTIONS, roleLabel, type ApiUser, type Role } from '@/data/types'
 import { createUser, deleteUser, updateUser, userStore, useResource } from '@/api/data'
+import { useAuth } from '@/api/auth'
 import { formatDate } from '../../../utils/format'
 import { Button, StatusPill, TextInput, Select, Field } from '@/components/ui/Form'
 import { LoadingDots } from '@/components/ui/Loading'
@@ -51,6 +52,7 @@ const SORT_FIELDS = { username: 'username', role: 'role', createdAt: 'newest' } 
 
 export function UsersPage() {
   const { data: users, status, error, refresh } = useResource(userStore)
+  const { user: me } = useAuth()
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<ApiUser | null>(null)
@@ -225,7 +227,14 @@ export function UsersPage() {
                       {u.username.slice(0, 2).toUpperCase()}
                     </span>
                     <div>
-                      <p className="font-medium text-ink">{u.username}</p>
+                      <p className="font-medium text-ink">
+                        {u.username}
+                        {u.id === me?.id && (
+                          <span className="ml-1.5 rounded-md bg-primary-light px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                            you
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-muted">{u.email}</p>
                     </div>
                   </div>
@@ -256,12 +265,17 @@ export function UsersPage() {
                       >
                         <Pencil size={15} className="text-muted" /> Edit
                       </button>
-                      <button
-                        onClick={() => (setDeleting(u), setMenuId(null))}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-danger hover:bg-danger-bg"
-                      >
-                        <Trash2 size={15} /> Delete
-                      </button>
+                      {/* An admin can't remove their own account — the action
+                          doesn't even show. The API backs this up with
+                          SELF_DELETE regardless. */}
+                      {u.id !== me?.id && (
+                        <button
+                          onClick={() => (setDeleting(u), setMenuId(null))}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-danger hover:bg-danger-bg"
+                        >
+                          <Trash2 size={15} /> Delete
+                        </button>
+                      )}
                     </div>
                   )}
                 </td>

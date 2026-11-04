@@ -290,6 +290,7 @@ describe('users module (admin-only)', () => {
       .send({ password: ADMIN_PW })
     // Self-delete is forbidden, even with the right password.
     expect(remove.status).toBe(403)
+    expect(remove.body.error.code).toBe('SELF_DELETE')
   })
 
   it('password-confirmed delete cascades owned records, restocks, and repoints issued work', async () => {
