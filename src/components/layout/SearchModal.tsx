@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Search } from 'lucide-react'
 
@@ -11,15 +11,9 @@ const destinations = [
   { label: 'Settings', to: '/settings' },
 ]
 
-export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
-
-  useEffect(() => {
-    if (open) setQuery('')
-  }, [open])
-
-  if (!open) return null
 
   const results = destinations.filter((d) =>
     d.label.toLowerCase().includes(query.trim().toLowerCase()),

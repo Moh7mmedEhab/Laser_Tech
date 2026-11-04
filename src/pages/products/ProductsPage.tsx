@@ -1,0 +1,206 @@
+import { useMemo, useState } from 'react'
+import { MoreHorizontal, Plus, Search } from 'lucide-react'
+import { PRODUCTS } from '@/data/products'
+import { LOW_STOCK_THRESHOLD, type Product } from '@/data/types'
+import { formatEGP } from '../../../utils/format'
+import { Button, StatusPill } from '@/components/ui/Form'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ProductModal } from './ProductModal'
+import { ProductActionsMenu } from './ProductActionsMenu'
+
+const PAGE_SIZE = 8
+
+const emptyProduct = (): Product => ({
+  id: '',
+  name: '',
+  sku: '',
+  category: 'Laser Tubes',
+  price: 0,
+  quantity: 0,
+})
+
+const stockStatus = (q: number) =>
+  q === 0
+    ? { tone: 'error' as const, label: 'Out of stock' }
+    : q < LOW_STOCK_THRESHOLD
+      ? { tone: 'warning' as const, label: 'Low stock' }
+      : { tone: 'success' as const, label: 'In stock' }
+
+export function ProductsPage() {
+  const [products, setProducts] = useState<Product[]>(PRODUCTS)
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [editing, setEditing] = useState<Product | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [deleting, setDeleting] = useState<Product | null>(null)
+  const [menuRow, setMenuRow] = useState<string | null>(null)
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return products.filter((p) =>
+      [p.name, p.sku, p.category].some((v) => v.toLowerCase().includes(q)),
+    )
+  }, [products, query])
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount)
+  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const lowStockCount = products.filter((p) => p.quantity < LOW_STOCK_THRESHOLD).length
+
+  const openCreate = () => {
+    setEditing(emptyProduct())
+    setFormOpen(true)
+  }
+  const openEdit = (p: Product) => {
+    setEditing(p)
+    setFormOpen(true)
+    setMenuRow(null)
+  }
+  const save = (product: Product) => {
+    setProducts((prev) =>
+      product.id
+        ? prev.map((p) => (p.id === product.id ? product : p))
+        : [...prev, { ...product, id: `p-${Date.now()}` }],
+    )
+    setFormOpen(false)
+  }
+
+  return (
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold text-ink">Products</h2>
+          <p className="mt-1 text-sm text-muted">
+            {products.length} products ·{' '}
+            <span className="font-medium text-warning">{lowStockCount} low on stock</span>
+          </p>
+        </div>
+        <Button onClick={openCreate}>
+          <Plus size={16} /> Add product
+        </Button>
+      </header>
+
+      <div className="rounded-card bg-surface shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
+          <div className="relative w-full max-w-sm">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Search for product name, SKU or category"
+              className="h-10 w-full rounded-lg border border-line bg-canvas pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted focus:border-primary focus:bg-surface"
+            />
+          </div>
+        </div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs font-semibold text-muted">
+              <th className="px-4 py-3">Product</th>
+              <th className="px-4 py-3">Category</th>
+              <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3">Quantity</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="w-12 px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((p) => {
+              const status = stockStatus(p.quantity)
+              const low = p.quantity < LOW_STOCK_THRESHOLD
+              return (
+                <tr
+                  key={p.id}
+                  className={`relative border-b border-line transition-colors hover:bg-canvas/70 ${
+                    low ? 'bg-warning-bg/60' : ''
+                  }`}
+                >
+                  <td className="px-4 py-3.5">
+                    {low && <span className="absolute inset-y-0 left-0 w-1 rounded-full bg-warning" />}
+                    <div>
+                      <p className="font-medium text-ink">{p.name}</p>
+                      <p className="text-xs text-muted">{p.sku}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5 text-muted">{p.category}</td>
+                  <td className="px-4 py-3.5 font-medium text-ink">{formatEGP(p.price)}</td>
+                  <td className="px-4 py-3.5">
+                    <span className={low ? 'font-semibold text-warning' : 'text-ink'}>{p.quantity}</span>
+                    {low && <span className="ml-2 text-xs text-warning">restock soon</span>}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <StatusPill tone={status.tone} label={status.label} />
+                  </td>
+                  <td className="relative px-4 py-3.5">
+                    <button
+                      onClick={() => setMenuRow(menuRow === p.id ? null : p.id)}
+                      className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                    {menuRow === p.id && (
+                      <ProductActionsMenu
+                        onEdit={() => openEdit(p)}
+                        onDelete={() => {
+                          setDeleting(p)
+                          setMenuRow(null)
+                        }}
+                        onClose={() => setMenuRow(null)}
+                      />
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+            {visible.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                  No products match “{query}”
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        <div className="flex items-center justify-between p-4 text-sm text-muted">
+          <span>Showing {visible.length} of {filtered.length} products</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"
+              disabled={safePage === 1}
+              onClick={() => setPage(safePage - 1)}
+            >
+              Prev
+            </button>
+            <span className="px-2 font-medium text-ink">{safePage} / {pageCount}</span>
+            <button
+              className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"
+              disabled={safePage === pageCount}
+              onClick={() => setPage(safePage + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {formOpen && editing && (
+        <ProductModal product={editing} onSave={save} onClose={() => setFormOpen(false)} />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title="Delete product"
+          message={`Delete “${deleting.name}” permanently? This cannot be undone.`}
+          onConfirm={() => {
+            setProducts((prev) => prev.filter((p) => p.id !== deleting.id))
+            setDeleting(null)
+          }}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
+    </div>
+  )
+}

@@ -14,3 +14,8 @@ export function formatDate(iso: string): string {
     year: 'numeric',
   }).format(new Date(iso))
 }
+
+/** Today's date as an ISO date string (YYYY-MM-DD). */
+export function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
