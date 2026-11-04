@@ -14,7 +14,7 @@ function readSessionCookie(raw: string | undefined): string | undefined {
   return pair?.slice(prefix.length)
 }
 
-const AUTH_EVENTS = new Set(['bill:created', 'bill:updated', 'bill:deleted', 'product:changed'])
+const AUTH_EVENTS = new Set(['bill:created', 'bill:updated', 'bill:deleted', 'product:changed', 'user:changed'])
 
 async function socketAuth(socket: Socket, next: (err?: Error) => void) {
   try {

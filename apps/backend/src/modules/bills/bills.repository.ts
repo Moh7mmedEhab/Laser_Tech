@@ -13,6 +13,12 @@ export const BILL_INCLUDE = {
   admin: { select: { id: true, username: true } },
 } as const
 
+const SORT_FIELDS: Record<ListBillsQuery['sort'], keyof Prisma.BillOrderByWithRelationInput> = {
+  newest: 'createdAt',
+  oldest: 'createdAt',
+  amount: 'amount',
+}
+
 const SORTS: Record<ListBillsQuery['sort'], Prisma.BillOrderByWithRelationInput> = {
   newest: { createdAt: 'desc' },
   oldest: { createdAt: 'asc' },
@@ -20,11 +26,15 @@ const SORTS: Record<ListBillsQuery['sort'], Prisma.BillOrderByWithRelationInput>
 }
 
 export function listBills(query: ListBillsQuery) {
-  const { page, limit, userId, search, from, to, sort } = query
+  const { page, limit, userId, adminId, search, from, to, minAmount, maxAmount, sort, order } = query
   const where: Prisma.BillWhereInput = {
     ...(userId ? { userId } : {}),
+    ...(adminId ? { adminId } : {}),
     ...(from || to
       ? { createdAt: { gte: from ? new Date(from) : undefined, lte: to ? new Date(`${to}T23:59:59.999Z`) : undefined } }
+      : {}),
+    ...(minAmount !== undefined || maxAmount !== undefined
+      ? { amount: { gte: minAmount, lte: maxAmount } }
       : {}),
     ...(search
       ? {
@@ -41,7 +51,8 @@ export function listBills(query: ListBillsQuery) {
     prisma.bill.findMany({
       where,
       include: BILL_INCLUDE,
-      orderBy: SORTS[sort],
+      // Explicit client order wins; otherwise the column's server default.
+      orderBy: order ? { [SORT_FIELDS[sort]]: order } : SORTS[sort],
       skip: (page - 1) * limit,
       take: limit,
     }),

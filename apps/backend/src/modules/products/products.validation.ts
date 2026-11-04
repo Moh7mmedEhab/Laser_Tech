@@ -39,7 +39,13 @@ export const listProductsQuerySchema = z
       .enum(['true', 'false'])
       .optional()
       .transform((v) => (v === undefined ? undefined : v === 'true')),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    minPrice: z.coerce.number().min(0).max(9_999_999_999).optional(),
+    maxPrice: z.coerce.number().min(0).max(9_999_999_999).optional(),
     sort: z.enum(['name', 'price', 'quantity', 'newest']).default('name'),
+    /** Optional direction override over the server default for `sort`. */
+    order: z.enum(['asc', 'desc']).optional(),
   })
   .strict()
 

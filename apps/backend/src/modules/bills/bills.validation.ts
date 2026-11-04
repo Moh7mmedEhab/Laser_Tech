@@ -30,10 +30,15 @@ export const listBillsQuerySchema = z
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     userId: z.cuid().optional(),
+    adminId: z.cuid().optional(),
     search: z.string().trim().min(1).max(60).optional(),
     from: z.iso.date().optional(),
     to: z.iso.date().optional(),
+    minAmount: z.coerce.number().min(0).max(9_999_999_999).optional(),
+    maxAmount: z.coerce.number().min(0).max(9_999_999_999).optional(),
     sort: z.enum(['newest', 'oldest', 'amount']).default('newest'),
+    /** Optional direction override over the server default for `sort`. */
+    order: z.enum(['asc', 'desc']).optional(),
   })
   .strict()
 

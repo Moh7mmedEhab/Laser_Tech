@@ -1,6 +1,7 @@
 import { prisma } from '../../config/db.js'
 import { AppError, forbidden, notFound } from '../../errors/app.errors.js'
 import { mapPrismaKnownError } from '../../lib/prisma-errors.js'
+import { emit } from '../../lib/events.js'
 import { hashPassword } from '../auth/auth.service.js'
 import * as repo from './users.repository.js'
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.validation.js'
@@ -30,7 +31,9 @@ export async function createUser(input: CreateUserInput) {
   try {
     const passwordHash = await hashPassword(input.password)
     const { password: _password, ...rest } = input
-    return await repo.createUser({ ...rest, passwordHash })
+    const created = await repo.createUser({ ...rest, passwordHash })
+    emit('user:changed', { userId: created.id, action: 'created' })
+    return created
   } catch (err) {
     throw mapPrismaKnownError(err, { entity: 'user' })
   }
@@ -50,7 +53,9 @@ export async function updateUser(id: string, input: UpdateUserInput) {
     const data: typeof rest & { passwordHash?: string } = { ...rest }
     if (password) data.passwordHash = await hashPassword(password)
 
-    return await repo.updateUser(id, data)
+    const updated = await repo.updateUser(id, data)
+    emit('user:changed', { userId: id, action: 'updated' })
+    return updated
   } catch (err) {
     throw mapPrismaKnownError(err, { entity: 'user' })
   }
@@ -79,7 +84,9 @@ export async function deleteUser(id: string, callerId: string) {
     )
   }
 
-  return repo.deleteUser(id)
+  const deleted = await repo.deleteUser(id)
+  emit('user:changed', { userId: id, action: 'deleted' })
+  return deleted
 }
 
 async function assertOtherAdminExists(id: string) {

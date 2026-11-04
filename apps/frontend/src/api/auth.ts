@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { api, setUnauthorizedHandler } from '@/api/client'
 import { connectSocket, disconnectSocket } from '@/api/socket'
-import { bindRealtimeInvalidations } from '@/api/data'
+import { bindRealtimeInvalidations, clearAllStores } from '@/api/data'
 import type { ApiMe } from '@/data/types'
 
 type AuthSnapshot = {
@@ -38,6 +38,7 @@ class AuthStore {
     try {
       const { user } = await api.get<{ user: ApiMe | undefined }>('/auth/me')
       if (user) {
+        clearAllStores()
         connectSocket()
         bindRealtimeInvalidations()
         this.patch({ user, settled: true })
@@ -51,6 +52,7 @@ class AuthStore {
 
   login = async (input: LoginInput) => {
     const { user } = await api.post<{ user: ApiMe }>('/auth/login', input)
+    clearAllStores()
     connectSocket()
     bindRealtimeInvalidations()
     this.patch({ user, settled: true })
@@ -78,11 +80,27 @@ class AuthStore {
     return user
   }
 
-  /** Rotates the session token; backend revokes every other session. */
+  /**
+   * Rotate the session token; the backend revokes every *other* session.
+   */
   changePassword = async (currentPassword: string, newPassword: string) => {
     await api.patch('/auth/password', { currentPassword, newPassword })
   }
 }
+
+/** One login entry for the history table. */
+export type LoginHistoryRow = { id: string; ip: string | null; userAgent: string | null; createdAt: string }
+
+/** One active session for the devices list (`current` marks this device). */
+export type SessionRow = { id: string; userAgent: string | null; createdAt: string; current: boolean }
+
+export const listSessions = () =>
+  api.get<{ sessions: SessionRow[] }>('/auth/sessions').then((r) => r.sessions)
+
+export const revokeAllOtherSessions = () => api.del('/auth/revoke-others').catch(() => api.del('/auth/sessions'))
+
+export const listLoginHistory = () =>
+  api.get<{ history: LoginHistoryRow[] }>('/auth/login-history').then((r) => r.history)
 
 export const authStore = new AuthStore()
 setUnauthorizedHandler(() => {

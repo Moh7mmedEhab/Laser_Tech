@@ -33,13 +33,17 @@ class ResourceStore<T extends ApiRow> {
     version: 0,
   }
 
-  constructor(name: string, list: () => Promise<{ rows: T[]; total: number }>) {
-    this.name = name
-    this.list = list
+  constructor(name: string, fetcher: (queryString: string) => Promise<{ rows: T[]; total: number }>) {
+    // Plain fields (not parameter properties) so `erasableSyntaxOnly` passes.
+    this._name = name
+    this._fetcher = fetcher
   }
 
-  readonly name: string
-  private readonly list
+  readonly _name: string
+  private readonly _fetcher
+  /** Extra filter/sort params the active page last asked for. */
+  private params: Record<string, string | number | boolean | null | undefined> = {}
+  private _paramsDirty = false
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
@@ -58,7 +62,7 @@ class ResourceStore<T extends ApiRow> {
   load = async () => {
     this.patch({ status: 'loading', error: null })
     try {
-      const { rows, total } = await this.list()
+      const { rows, total } = await this._fetcher(this.queryString())
       this.patch({
         data: rows,
         total,
@@ -75,10 +79,35 @@ class ResourceStore<T extends ApiRow> {
     }
   }
 
-  /** Called from component effects; fetches when there is no fresh data. */
+  /** Base window (server filter+sort, client paginates) plus active params. */
+  private queryString() {
+    const base = new URLSearchParams({ page: '1', limit: '100' })
+    for (const [key, value] of Object.entries(this.params)) {
+      if (value !== undefined && value !== null && value !== '') base.set(key, String(value))
+    }
+    return `?${base.toString()}`
+  }
+
+  /**
+   * Pages call this from filter-change effects; a change marks the store
+   * dirty so the next ensure() refetches with the new params applied.
+   */
+  setParams = (params: Record<string, string | number | boolean | null | undefined>) => {
+    const next = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined))
+    if (JSON.stringify(next) === JSON.stringify(this.params)) return
+    this.params = next
+    this._paramsDirty = true
+  }
+
+  /** Called from component effects; fetches when dirty or stale. */
   ensure = async () => {
-    const { status, fetchedAt, data } = this.snapshot
-    if (status === 'ready' && data.length > 0 && Date.now() - fetchedAt < 15_000) return
+    if (this._paramsDirty) {
+      this._paramsDirty = false
+      await this.load()
+      return
+    }
+    const { status, fetchedAt } = this.snapshot
+    if (status === 'ready' && Date.now() - fetchedAt < 15_000) return
     if (status === 'loading') return
     await this.load()
   }
@@ -106,29 +135,53 @@ class ResourceStore<T extends ApiRow> {
       total: Math.max(0, this.snapshot.total - 1),
     })
   }
+
+  /** Drop everything (account switch): next ensure() is a cold fetch. */
+  reset = () => {
+    this._paramsDirty = true
+    this.patch({
+      data: [],
+      total: 0,
+      status: 'idle',
+      error: null,
+      fetchedAt: 0,
+      version: (this.version += 1),
+    })
+  }
 }
 
 // ---- module stores (one per collection, shared across every page mount) ----
 
-export const productStore = new ResourceStore<Product>('products', async () => {
-  const res = await api.get<{ products: Product[]; total: number }>('/products?limit=100')
-  return { rows: res.products, total: res.total }
-})
+export const productStore = new ResourceStore<Product>('products', (qs) =>
+  api
+    .get<{ products: Product[]; total: number }>(`/products${qs}`)
+    .then((r) => ({ rows: r.products, total: r.total })),
+)
 
-export const billStore = new ResourceStore<Bill>('bills', async () => {
-  const res = await api.get<{ bills: Bill[]; total: number }>('/bills?limit=100')
-  return { rows: res.bills, total: res.total }
-})
+export const billStore = new ResourceStore<Bill>('bills', (qs) =>
+  api
+    .get<{ bills: Bill[]; total: number }>(`/bills${qs}`)
+    .then((r) => ({ rows: r.bills, total: r.total })),
+)
 
-export const userStore = new ResourceStore<ApiUser>('users', async () => {
-  const res = await api.get<{ users: ApiUser[]; total: number }>('/users?limit=100')
-  return { rows: res.users, total: res.total }
-})
+export const userStore = new ResourceStore<ApiUser>('users', (qs) =>
+  api
+    .get<{ users: ApiUser[]; total: number }>(`/users${qs}`)
+    .then((r) => ({ rows: r.users, total: r.total })),
+)
 
-export const noteStore = new ResourceStore<Note>('notes', async () => {
-  const res = await api.get<{ notes: Note[]; total: number }>('/notes?limit=100')
-  return { rows: res.notes, total: res.total }
-})
+export const noteStore = new ResourceStore<Note>('notes', (qs) =>
+  api
+    .get<{ notes: Note[]; total: number }>(`/notes${qs}`)
+    .then((r) => ({ rows: r.notes, total: r.total })),
+)
+
+/** Wipe all caches (account switch / after login) so no stale rows leak. */
+export function clearAllStores() {
+  for (const store of [productStore, billStore, userStore, noteStore]) {
+    store.reset()
+  }
+}
 
 // Socket.IO domain events → store invalidation. Bills touch product stock, so
 // the products store refreshes alongside them.
@@ -138,6 +191,7 @@ const invalidations: Record<string, { stores: Invalidatable[] }> = {
   'bill:created': { stores: [billStore, productStore] },
   'bill:updated': { stores: [billStore, productStore] },
   'bill:deleted': { stores: [billStore, productStore] },
+  'user:changed': { stores: [userStore] },
   'note:created': { stores: [noteStore] },
   'note:updated': { stores: [noteStore] },
   'note:deleted': { stores: [noteStore] },

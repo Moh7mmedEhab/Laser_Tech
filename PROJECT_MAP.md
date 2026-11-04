@@ -22,14 +22,15 @@
 | `src/components/ui/` | `Modal`, `Drawer`, `Form` (Button/Input/Select/StatusPill), `ConfirmDialog`, `Pagination` |
 | `src/pages/` | Route barrel files exporting from `src/pages/<route>/` folders |
 | `src/pages/products/` | Products table + search + low-stock rows (live API); `ProductModal`, `ProductActionsMenu` |
-| `src/pages/bills/` | Bills table + search (live API); `BillDrawer` (client + product line-items save `{userId, notes, items}`), view modal |
+| `src/pages/bills/` | Bills table + FilterBar (client/issued-by/date/amount filters) + sortable headers; `BillDrawer` (client + product line-items save `{userId, notes, items}`), view modal, `BillPrintPage` (print tab) |
 | `src/pages/users/` | Users table with avatars/roles/phones (live API); `UserModal` (username/email/phone/role/password) |
 | `src/pages/notes/` | Daily notes card grid (live API); `NoteModal` (content, amount, optional subject user) |
 | `src/pages/StatsPage.tsx` | Statistics computed from API data: stat cards, revenue trend, category donut, weekly bills |
 | `src/pages/SettingsPage.tsx` | Self profile via `PATCH /api/v1/auth/me` + password change; avatar upload is local-only |
 | `src/pages/LoginPage.tsx` | Standalone centered login card (real session login) |
-| `src/api/` | `client` (fetch wrapper, ApiError, 401→logout), `socket` (Socket.IO singleton), `data` (ResourceStores + command fns + `useResource`), `auth` (authStore: init/login/logout/updateProfile/changePassword) |
+| `src/api/` | `client` (fetch wrapper, ApiError, 401→logout), `socket` (Socket.IO singleton), `data` (ResourceStores + parametrized queries + command fns + `useResource`), `auth` (authStore: init/login/logout/updateProfile/changePassword + sessions/login-history helpers) |
 | `src/data/types.ts` | Live API contract types (Role/PRODUCT/BILL/NOTE/USER), `LOW_STOCK_THRESHOLD`, role labels |
+| `src/components/ui/FilterBar.tsx` | `FilterBar` (search/select/date/number fields → store params) + `SortTh` (click cycles asc→desc→default) |
 | `utils/format.ts` | `formatEGP`, `formatDate`, `todayISO` (plain helpers, no framework imports) |
 | `config/` | Reserved (empty until backend config is added) |
 | `tests/unit` `tests/integration` `tests/security` | Reserved placeholders; no test runner installed yet |
@@ -49,6 +50,7 @@ Monorepo workspace, npm scripts via root `package.json` (`dev:backend`, `build -
 | `src/lib/` | `app.ts` (assembly), `server.ts` (HTTP+Socket.IO), `session.ts` (opaque tokens), `rate-limit.ts`, `events.ts` (domain bus), `prisma-errors.ts`, `db-retry.ts` |
 | `src/errors/`, `src/middlewares/` | `AppError` factories; ZodError→422, AppError→status; `requireAuth`/`requireRole` |
 | `src/modules/<name>/` | Per module: constants/types/validation/repository/service/controller/routes |
+| `src/modules/users/` | Emits `user:changed` domain events on create/update/delete (realtime parity with products/bills/notes) |
 | `scripts/seed.ts` | First-admin seeder (idempotent upsert) |
 | `tests/` | `unit/` (10), `integration/` (13), `security/` (10) — vitest + supertest on the Neon backend-test branch |
 | `.env` / `.env.test` | Neon pooled+direct URLs, CORS_ORIGINS, COOKIE_SECRET (gitignored) |

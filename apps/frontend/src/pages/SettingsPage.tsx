@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react'
-import { Check, Camera, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Camera, Loader2, LogOut, Smartphone, Monitor, Terminal } from 'lucide-react'
 import { roleLabel, type ApiMe } from '@/data/types'
-import { authStore, useAuth } from '@/api/auth'
+import { authStore, listLoginHistory, listSessions, revokeAllOtherSessions, useAuth, type SessionRow } from '@/api/auth'
 import { Button, Field, TextInput } from '@/components/ui/Form'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { formatDate } from '../../utils/format'
 
 type ProfileForm = { username: string; email: string; phone: string }
 
@@ -157,6 +159,9 @@ export function SettingsPage() {
           </p>
         )}
       </section>
+
+      <SessionsCard />
+      <LoginHistoryCard />
     </div>
   )
 }
@@ -226,5 +231,143 @@ function PasswordForm({ onSaved }: { onSaved: () => void }) {
         </Button>
       </div>
     </form>
+  )
+}
+
+/** Short, friendly device label from a session's user agent. */
+function deviceLabel(ua: string | null): string {
+  if (!ua) return 'Unknown device'
+  if (/iphone|android|mobile/i.test(ua)) return 'Mobile browser'
+  if (/curl|httpie|insomnia|postman/i.test(ua)) return 'API client'
+  if (/node/i.test(ua)) return 'Node client'
+  return 'Desktop browser'
+}
+
+function SessionIcon({ ua }: { ua: string | null }) {
+  if (ua && /iphone|android|mobile/i.test(ua)) return <Smartphone size={15} />
+  if (ua && /node|curl|httpie|insomnia|postman/i.test(ua)) return <Terminal />
+  return <Monitor size={15} />
+}
+
+/** Active sessions with a "log out everywhere else" action. */
+function SessionsCard() {
+  const [sessions, setSessions] = useState<SessionRow[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const load = async () => {
+    try {
+      setSessions(await listSessions())
+    } catch {
+      setSessions([])
+    }
+  }
+
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
+  }, [])
+
+  const revoke = async () => {
+    setBusy(true)
+    setMessage('')
+    try {
+      await revokeAllOtherSessions()
+      await load()
+      setMessage('All other devices have been signed out.')
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Could not sign out other devices')
+    } finally {
+      setBusy(false)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <section className="rounded-card bg-surface p-6 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-ink">Active devices</h3>
+        <Button variant="danger" disabled={busy || (sessions?.length ?? 0) <= 1} onClick={() => setConfirming(true)}>
+          <LogOut size={15} /> Log out other devices
+        </Button>
+      </div>
+      {message && <p className="mt-3 text-sm font-medium text-success">{message}</p>}
+
+      <ul className="mt-4 divide-y divide-line">
+        {sessions?.map((s) => (
+          <li key={s.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+            <div className="flex items-center gap-3">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-canvas text-muted">
+                <SessionIcon ua={s.userAgent} />
+              </span>
+              <div>
+                <p className="font-medium text-ink">
+                  {s.current ? 'This device' : deviceLabel(s.userAgent)}{' '}
+                  {s.current && <span className="rounded-md bg-success-bg px-1.5 py-0.5 text-[11px] font-medium text-success">active</span>}
+                </p>
+                <p className="text-xs text-muted">Signed in {formatDate(s.createdAt)}</p>
+              </div>
+            </div>
+          </li>
+        ))}
+        {sessions?.length === 0 && <li className="py-3 text-sm text-muted">No active sessions.</li>}
+      </ul>
+
+      {confirming && (
+        <ConfirmDialog
+          title="Log out other devices"
+          message="Every other signed-in device will be logged out. This device stays signed in."
+          onConfirm={() => void revoke()}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </section>
+  )
+}
+
+function LoginHistoryCard() {
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof listLoginHistory>> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listLoginHistory()
+      .then((history) => {
+        if (!cancelled) setRows(history)
+      })
+      .catch(() => setRows([]))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <section className="rounded-card bg-surface p-6 shadow-card">
+      <h3 className="text-sm font-semibold text-ink">Login history</h3>
+      <p className="mt-1 text-xs text-muted">Recent sign-ins for your account (this admin).</p>
+      <table className="mt-4 w-full text-sm">
+        <thead>
+          <tr className="border-b border-line text-left text-xs font-semibold text-muted">
+            <th className="py-2">When</th>
+            <th className="py-2">Device</th>
+            <th className="py-2">IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows?.map((row) => (
+            <tr key={row.id} className="border-b border-line/60">
+              <td className="py-2.5 text-ink">{formatDate(row.createdAt)}</td>
+              <td className="py-2.5 text-muted">{deviceLabel(row.userAgent)}</td>
+              <td className="py-2.5 text-muted">{row.ip ?? '—'}</td>
+            </tr>
+          ))}
+          {rows?.length === 0 && (
+            <tr>
+              <td colSpan={3} className="py-3 text-muted">No recorded logins yet.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </section>
   )
 }

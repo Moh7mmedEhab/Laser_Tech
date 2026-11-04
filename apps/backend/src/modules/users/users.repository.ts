@@ -1,12 +1,28 @@
+import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../config/db.js'
 import { withRetry } from '../../lib/db-retry.js'
 import { USER_PUBLIC_FIELDS } from './users.constants.js'
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.validation.js'
 
+const SORT_FIELDS: Record<ListUsersQuery['sort'], string> = {
+  newest: 'createdAt',
+  username: 'username',
+  role: 'role',
+}
+
+const SORTS: Record<ListUsersQuery['sort'], Prisma.UserOrderByWithRelationInput> = {
+  newest: { createdAt: 'desc' },
+  username: { username: 'asc' },
+  role: { role: 'asc' },
+}
+
 export function listUsers(query: ListUsersQuery) {
-  const { page, limit, role, search } = query
-  const where = {
+  const { page, limit, role, search, from, to, sort, order } = query
+  const where: Prisma.UserWhereInput = {
     ...(role ? { role } : {}),
+    ...(from || to
+      ? { createdAt: { gte: from ? new Date(`${from}T00:00:00.000Z`) : undefined, lte: to ? new Date(`${to}T23:59:59.999Z`) : undefined } }
+      : {}),
     ...(search
       ? {
           OR: [
@@ -22,7 +38,8 @@ export function listUsers(query: ListUsersQuery) {
     prisma.user.findMany({
       where,
       select: { ...USER_PUBLIC_FIELDS, _count: { select: { bills: true } } },
-      orderBy: { createdAt: 'desc' },
+      // Explicit client order wins; otherwise the column's server default.
+      orderBy: order ? { [SORT_FIELDS[sort]]: order } : SORTS[sort],
       skip: (page - 1) * limit,
       take: limit,
     }),

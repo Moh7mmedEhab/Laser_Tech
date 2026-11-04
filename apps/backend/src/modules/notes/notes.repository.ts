@@ -17,9 +17,12 @@ const SORTS: Record<ListNotesQuery['sort'], Prisma.NoteOrderByWithRelationInput>
 }
 
 export function listNotes(query: ListNotesQuery) {
-  const { page, limit, userId, search, minAmount, maxAmount, sort } = query
+  const { page, limit, userId, search, from, to, minAmount, maxAmount, sort } = query
   const where: Prisma.NoteWhereInput = {
     ...(userId ? { userId } : {}),
+    ...(from || to
+      ? { createdAt: { gte: from ? new Date(`${from}T00:00:00.000Z`) : undefined, lte: to ? new Date(`${to}T23:59:59.999Z`) : undefined } }
+      : {}),
     ...(minAmount !== undefined || maxAmount !== undefined
       ? { amount: { gte: minAmount, lte: maxAmount } }
       : {}),

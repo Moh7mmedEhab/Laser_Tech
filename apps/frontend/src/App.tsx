@@ -21,6 +21,9 @@ const NotesPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
 )
+const BillPrintPage = lazy(() =>
+  import('@/pages/bills/BillPrintPage').then((m) => ({ default: m.BillPrintPage })),
+)
 
 /** Redirects signed-out visitors to /login, and signed-in ones away from it. */
 function Guard({ children }: { children: React.ReactNode }) {
@@ -51,6 +54,8 @@ export default function App() {
       <Suspense fallback={<div className="p-10 text-sm text-muted">Loading…</div>}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Standalone print view — no app chrome, opens its own tab. */}
+          <Route path="/bills/:id/print" element={<BillPrintPage />} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<StatsPage />} />
             <Route path="/products" element={<ProductsPage />} />

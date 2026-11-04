@@ -32,6 +32,8 @@ export const listNotesQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(20),
     userId: z.cuid().optional(),
     search: z.string().trim().min(1).max(60).optional(),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
     minAmount: z.coerce.number().min(0).optional(),
     maxAmount: z.coerce.number().min(0).optional(),
     sort: z.enum(['newest', 'oldest', 'amount']).default('newest'),

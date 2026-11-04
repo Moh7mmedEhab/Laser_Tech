@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react'
 import type { Note } from '@/data/types'
 import { createNote, deleteNote, noteStore, updateNote, userStore, useResource } from '@/api/data'
 import { formatEGP, formatDate } from '../../../utils/format'
 import { Button } from '@/components/ui/Form'
+import { FilterBar, type FilterValues } from '@/components/ui/FilterBar'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { NoteModal } from './NoteModal'
 
@@ -15,6 +16,13 @@ export function NotesPage() {
   const [deleting, setDeleting] = useState<Note | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [filters, setFilters] = useState<FilterValues>({})
+
+  // Date range is the only server filter for notes.
+  useEffect(() => {
+    noteStore.setParams({ from: filters.from, to: filters.to })
+    void noteStore.ensure()
+  }, [filters])
 
   /** Create or update via the API, then reconcile the store. */
   const save = async (draft: { content: string; amount: number | null; userId: string | null }) => {
@@ -84,6 +92,18 @@ export function NotesPage() {
       {status === 'loading' && notes.length > 0 && (
         <p className="text-xs text-muted">Refreshing data…</p>
       )}
+
+      <div className="rounded-card bg-surface shadow-card">
+        <FilterBar
+          filters={[
+            { key: 'from', type: 'date', label: 'From date' },
+            { key: 'to', type: 'date', label: 'To date' },
+          ]}
+          values={filters}
+          onChange={(key, value) => setFilters((f) => ({ ...f, [key]: value }))}
+          onReset={() => setFilters({})}
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {notes.map((n) => (

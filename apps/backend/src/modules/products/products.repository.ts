@@ -15,6 +15,13 @@ const PRODUCT_SELECT = {
   updatedAt: true,
 } satisfies Prisma.ProductSelect
 
+const SORT_FIELDS: Record<ListProductsQuery['sort'], keyof Prisma.ProductOrderByWithRelationInput> = {
+  name: 'name',
+  price: 'price',
+  quantity: 'quantity',
+  newest: 'createdAt',
+}
+
 const SORTS: Record<ListProductsQuery['sort'], Prisma.ProductOrderByWithRelationInput> = {
   name: { name: 'asc' },
   price: { price: 'desc' },
@@ -23,10 +30,16 @@ const SORTS: Record<ListProductsQuery['sort'], Prisma.ProductOrderByWithRelation
 }
 
 export function listProducts(query: ListProductsQuery) {
-  const { page, limit, search, category, lowStock, sort } = query
+  const { page, limit, search, category, lowStock, from, to, minPrice, maxPrice, sort, order } = query
   const where: Prisma.ProductWhereInput = {
     ...(category ? { category: { equals: category, mode: 'insensitive' } } : {}),
     ...(lowStock ? { quantity: { lt: LOW_STOCK_THRESHOLD } } : {}),
+    ...(minPrice !== undefined || maxPrice !== undefined
+      ? { price: { gte: minPrice, lte: maxPrice } }
+      : {}),
+    ...(from || to
+      ? { createdAt: { gte: from ? new Date(`${from}T00:00:00.000Z`) : undefined, lte: to ? new Date(`${to}T23:59:59.999Z`) : undefined } }
+      : {}),
     ...(search
       ? {
           OR: [
@@ -41,7 +54,10 @@ export function listProducts(query: ListProductsQuery) {
     prisma.product.findMany({
       where,
       select: PRODUCT_SELECT,
-      orderBy: SORTS[sort],
+      // Explicit client order wins; otherwise the column's server default.
+      orderBy: order
+        ? { [SORT_FIELDS[sort]]: order }
+        : SORTS[sort],
       skip: (page - 1) * limit,
       take: limit,
     }),

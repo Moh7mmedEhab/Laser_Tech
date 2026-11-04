@@ -30,13 +30,17 @@ Build the Laser Tech admin dashboard frontend: statistics home with graphs, full
 - Lint (oxlint): clean (frontend + backend)
 - Build/typecheck (`tsc -b && vite build`): clean, bundle code-split (main ~326KB + lazy StatsPage ~420KB)
 - Live smoke test (frontend + backend dev servers): login → session cookie → `PATCH /auth/me`, product create/patch/delete via API, Socket.IO `product:changed` received by a cookie-authed client (update + delete), Vite proxy serves `/api` and `/socket.io` same-origin
-- Remaining tasks
+- Round 2 smoke: `user:changed` over a live socket, server-side filters (`search/category/lowStock/price range/date range` products, `search/user/admin/amount range/date range/sort` bills, `sort/role/date range` users, notes date range), sessions + login-history endpoints, 33 tests green
 
-- [x] Wire frontend to the backend API (`src/api/{client,socket,data,auth}.ts` stores + command fns; all pages live: Products, Bills (+items drawer), Users, Notes, Stats, Settings, Login)
-- [x] Realtime updates via Socket.IO events → store invalidation (bills also invalidate products for stock)
+## Remaining tasks
+
+- Realtime fixes done: users now emit `user:changed` (was the only silent module); frontend invalidates `userStore` on it
+- [x] New: server-side filters + sort/order (products: category/lowStock/price+/date range; bills: user/admin/amount range/date range; users: role/date range; notes: date range), `order` override on all sorts
+- [x] New: bill print tab `/bills/:id/print` with auto print dialog
+- [x] New: Settings — active devices (`GET/DELETE /auth/sessions`) + login history card
 - Dark mode, RTL (deferred by user)
 - Test runner setup for frontend (test folders are placeholders)
-- Browser-level smoke test of every page (node-level API flow verified)
+- Browser-level smoke test of every page (node-level API flow + socket verified)
 
 ## Backend progress (apps/backend)
 

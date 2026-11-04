@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
-import { MoreHorizontal, Plus, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { MoreHorizontal, Plus } from 'lucide-react'
 import { LOW_STOCK_THRESHOLD, type Product } from '@/data/types'
 import { createProduct, deleteProduct, productStore, updateProduct, useResource } from '@/api/data'
 import { formatEGP } from '../../../utils/format'
 import { Button, StatusPill } from '@/components/ui/Form'
+import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ProductModal } from './ProductModal'
 import { ProductActionsMenu } from './ProductActionsMenu'
@@ -28,9 +29,11 @@ const stockStatus = (q: number) =>
       ? { tone: 'warning' as const, label: 'Low stock' }
       : { tone: 'success' as const, label: 'In stock' }
 
+/** Column-header sort mapping: UI field → server `sort` value. */
+const SORT_FIELDS = { name: 'name', price: 'price', quantity: 'quantity', createdAt: 'newest' } as const
+
 export function ProductsPage() {
   const { data: products, status, error, refresh } = useResource(productStore)
-  const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Product | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -38,18 +41,47 @@ export function ProductsPage() {
   const [busy, setBusy] = useState<'' | 'save' | 'delete'>('')
   const [actionError, setActionError] = useState('')
   const [menuRow, setMenuRow] = useState<string | null>(null)
+  const [filters, setFilters] = useState<FilterValues>({})
+  const [sort, setSort] = useState<{ field: string | null; dir: 'asc' | 'desc' }>({
+    field: null,
+    dir: 'asc',
+  })
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return products.filter((p) =>
-      [p.name, p.sku, p.category].some((v) => v.toLowerCase().includes(q)),
-    )
-  }, [products, query])
+  // Column-header field → server `sort` value.
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const categories = useMemo(
+    () => [...new Set(products.map((p) => p.category))].sort(),
+    [products],
+  )
+
+  // Server does the filtering + sorting; pagination stays client-side over
+  // the returned (≤100 rows) window.
+  useEffect(() => {
+    productStore.setParams({
+      search: filters.search,
+      category: filters.category,
+      lowStock: filters.lowStock === 'true' ? 'true' : undefined,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      from: filters.from,
+      to: filters.to,
+      sort: sort.field ? SORT_FIELDS[sort.field as keyof typeof SORT_FIELDS] : undefined,
+      order: sort.field ? sort.dir : undefined,
+    })
+    void productStore.ensure()
+  }, [filters, sort])
+
+  const pageCount = Math.max(1, Math.ceil(products.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
-  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const visible = products.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
   const lowStockCount = products.filter((p) => p.quantity < LOW_STOCK_THRESHOLD).length
+
+  /** Click cycles asc → desc → server default. */
+  const onSort = (field: string, dir: 'asc' | 'desc') => {
+    if (sort.field === field && sort.dir === 'desc') setSort({ field: null, dir: 'asc' })
+    else setSort({ field, dir })
+    setPage(1)
+  }
 
   const openCreate = () => {
     setEditing(emptyProduct())
@@ -127,28 +159,34 @@ export function ProductsPage() {
       )}
 
       <div className="rounded-card bg-surface shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
-          <div className="relative w-full max-w-sm">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                setPage(1)
-              }}
-              placeholder="Search for product name, SKU or category"
-              className="h-10 w-full rounded-lg border border-line bg-canvas pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted focus:border-primary focus:bg-surface"
-            />
-          </div>
-        </div>
+        <FilterBar
+          filters={[
+            { key: 'search', type: 'text', label: 'Product', placeholder: 'Search name, SKU or category' },
+            { key: 'category', type: 'select', label: 'Category', options: categories.map((c) => ({ value: c, label: c })) },
+            { key: 'lowStock', type: 'select', label: 'Stock', options: [{ value: 'true', label: 'Low stock only (<10)' }] },
+            { key: 'minPrice', type: 'number', label: 'Min price (EGP)', placeholder: '0' },
+            { key: 'maxPrice', type: 'number', label: 'Max price (EGP)', placeholder: '∞' },
+            { key: 'from', type: 'date', label: 'Added from' },
+            { key: 'to', type: 'date', label: 'Added to' },
+          ]}
+          values={filters}
+          onChange={(key, value) => {
+            setFilters((f) => ({ ...f, [key]: value }))
+            setPage(1)
+          }}
+          onReset={() => {
+            setFilters({})
+            setPage(1)
+          }}
+        />
 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs font-semibold text-muted">
-              <th className="px-4 py-3">Product</th>
+              <SortTh label="Product" field="name" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
               <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Quantity</th>
+              <SortTh label="Price" field="price" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
+              <SortTh label="Quantity" field="quantity" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
               <th className="px-4 py-3">Status</th>
               <th className="w-12 px-4 py-3"></th>
             </tr>
@@ -204,7 +242,7 @@ export function ProductsPage() {
             {visible.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                  No products match “{query}”
+                  {status === 'loading' ? 'Loading products…' : 'No products match the filters'}
                 </td>
               </tr>
             )}
@@ -212,7 +250,7 @@ export function ProductsPage() {
         </table>
 
         <div className="flex items-center justify-between p-4 text-sm text-muted">
-          <span>Showing {visible.length} of {filtered.length} products</span>
+          <span>Showing {visible.length} of {products.length} products</span>
           <div className="flex items-center gap-1.5">
             <button
               className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"

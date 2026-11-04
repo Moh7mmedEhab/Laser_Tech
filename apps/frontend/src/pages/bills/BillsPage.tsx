@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
-import { Eye, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Eye, MoreHorizontal, Pencil, Plus, Printer, Trash2 } from 'lucide-react'
 import type { Bill } from '@/data/types'
 import { billStore, createBill, deleteBill, productStore, updateBill, userStore, useResource } from '@/api/data'
 import { formatEGP, formatDate } from '../../../utils/format'
 import { Button } from '@/components/ui/Form'
+import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { BillDrawer, type BillDraft } from './BillDrawer'
@@ -11,12 +12,22 @@ import { BillDrawer, type BillDraft } from './BillDrawer'
 /** CUIDs are long — display a stable short label instead of the raw id. */
 const billLabel = (id: string) => `#${id.slice(-6).toUpperCase()}`
 
+/** Column-header sort mapping: UI field → server `sort` value. */
+const SORT_FIELDS = { createdAt: 'newest', amount: 'amount' } as const
+
 export function BillsPage() {
   const { data: bills, status, error, refresh } = useResource(billStore)
   const { data: products } = useResource(productStore)
   const { data: users } = useResource(userStore)
+  const admins = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const b of bills) seen.set(b.admin.id, b.admin.username)
+    for (const u of users) {
+      if (u.role === 'ADMIN' && !seen.has(u.id)) seen.set(u.id, u.username)
+    }
+    return [...seen.entries()].map(([value, label]) => ({ value, label }))
+  }, [bills, users])
 
-  const [query, setQuery] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Bill | null>(null)
   const [viewing, setViewing] = useState<Bill | null>(null)
@@ -24,19 +35,40 @@ export function BillsPage() {
   const [menuId, setMenuId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [filters, setFilters] = useState<FilterValues>({})
+  const [sort, setSort] = useState<{ field: string | null; dir: 'asc' | 'desc' }>({
+    field: null,
+    dir: 'desc',
+  })
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return bills.filter(
-      (b) => !q || b.id.toLowerCase().includes(q) || b.user.username.toLowerCase().includes(q),
-    )
-  }, [bills, query])
+  // Column-header field → server `sort` value.
 
-  const totalAmount = filtered.reduce((sum, b) => sum + b.amount, 0)
+  // Server does the filtering + sorting; the table renders the full window.
+  useEffect(() => {
+    billStore.setParams({
+      search: filters.search,
+      userId: filters.userId,
+      adminId: filters.adminId,
+      from: filters.from,
+      to: filters.to,
+      minAmount: filters.minAmount,
+      maxAmount: filters.maxAmount,
+      sort: sort.field ? SORT_FIELDS[sort.field as keyof typeof SORT_FIELDS] : undefined,
+      order: sort.field ? sort.dir : undefined,
+    })
+    void billStore.ensure()
+  }, [filters, sort])
 
-  const openingCreate = () => {
-    setEditing(null)
-    setFormOpen(true)
+  /** Click cycles asc → desc → server default. */
+  const onSort = (field: string, dir: 'asc' | 'desc') => {
+    if (sort.field === field && sort.dir === 'desc') setSort({ field: null, dir: 'desc' })
+    else setSort({ field, dir })
+  }
+
+  /** Print opens a dedicated tab with a print-ready layout. */
+  const printBill = (bill: Bill) => {
+    setMenuId(null)
+    window.open(`/bills/${bill.id}/print`, '_blank', 'noopener')
   }
 
   /** Create or update via the API; stores reconcile via upsert. */
@@ -86,17 +118,22 @@ export function BillsPage() {
     )
   }
 
+  const totalAmount = bills.reduce((sum, b) => sum + b.amount, 0)
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold text-ink">Bills</h2>
           <p className="mt-1 text-sm text-muted">
-            {filtered.length} bills · total{' '}
+            {bills.length} bills · total{' '}
             <span className="font-medium text-ink">{formatEGP(totalAmount)}</span>
           </p>
         </div>
-        <Button onClick={openingCreate} disabled={busy}>
+        <Button
+          onClick={() => (setEditing(null), setFormOpen(true))}
+          disabled={busy}
+        >
           <Plus size={16} /> Create bill
         </Button>
       </header>
@@ -109,17 +146,30 @@ export function BillsPage() {
       )}
 
       <div className="rounded-card bg-surface shadow-card">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line p-4">
-          <div className="relative min-w-56 flex-1 max-w-sm">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for bill or client"
-              className="h-10 w-full rounded-lg border border-line bg-canvas pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted focus:border-primary focus:bg-surface"
-            />
-          </div>
-        </div>
+        <FilterBar
+          filters={[
+            { key: 'search', type: 'text', label: 'Bills', placeholder: 'Search client or product' },
+            {
+              key: 'userId',
+              type: 'select',
+              label: 'Client',
+              options: users.map((u) => ({ value: u.id, label: u.username })),
+            },
+            {
+              key: 'adminId',
+              type: 'select',
+              label: 'Issued by',
+              options: admins,
+            },
+            { key: 'from', type: 'date', label: 'From date' },
+            { key: 'to', type: 'date', label: 'To date' },
+            { key: 'minAmount', type: 'number', label: 'Min amount (EGP)', placeholder: '0' },
+            { key: 'maxAmount', type: 'number', label: 'Max amount (EGP)', placeholder: '∞' },
+          ]}
+          values={filters}
+          onChange={(key, value) => setFilters((f) => ({ ...f, [key]: value }))}
+          onReset={() => setFilters({})}
+        />
 
         <table className="w-full text-sm">
           <thead>
@@ -127,13 +177,13 @@ export function BillsPage() {
               <th className="px-4 py-3">Bill #</th>
               <th className="px-4 py-3">Client</th>
               <th className="px-4 py-3">Items</th>
-              <th className="px-4 py-3">Issued</th>
-              <th className="px-4 py-3 text-right">Amount</th>
+              <SortTh label="Issued" field="createdAt" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
+              <SortTh label="Amount" field="amount" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} align="right" />
               <th className="w-12 px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((b) => {
+            {bills.map((b) => {
               const units = b.items.reduce((sum, it) => sum + it.quantity, 0)
               return (
                 <tr key={b.id} className="border-b border-line transition-colors hover:bg-canvas/70">
@@ -165,6 +215,7 @@ export function BillsPage() {
                           [
                             ['View bill', Eye, () => (setViewing(b), setMenuId(null))],
                             ['Edit bill', Pencil, () => (setEditing(b), setFormOpen(true), setMenuId(null))],
+                            ['Print bill', Printer, () => printBill(b)],
                             ['Delete bill', Trash2, () => (setDeleting(b), setMenuId(null))],
                           ] as const
                         ).map(([label, Icon, action], i) => (
@@ -172,10 +223,10 @@ export function BillsPage() {
                             key={label}
                             onClick={action}
                             className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-canvas ${
-                              i === 2 ? 'text-danger hover:bg-danger-bg' : 'text-ink'
+                              i === 3 ? 'text-danger hover:bg-danger-bg' : 'text-ink'
                             }`}
                           >
-                            <Icon size={15} className={i === 2 ? '' : 'text-muted'} /> {label}
+                            <Icon size={15} className={i === 3 ? '' : 'text-muted'} /> {label}
                           </button>
                         ))}
                       </div>
@@ -184,7 +235,7 @@ export function BillsPage() {
                 </tr>
               )
             })}
-            {filtered.length === 0 && (
+            {bills.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
                   {status === 'loading' ? 'Loading bills…' : 'No bills match your filters'}

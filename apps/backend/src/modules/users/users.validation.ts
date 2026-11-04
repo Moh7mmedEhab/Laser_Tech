@@ -47,6 +47,11 @@ export const listUsersQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(20),
     role: z.enum(ROLES).optional(),
     search: z.string().trim().min(1).max(60).optional(),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    sort: z.enum(['newest', 'username', 'role']).default('newest'),
+    /** Optional direction override over the server default for `sort`. */
+    order: z.enum(['asc', 'desc']).optional(),
   })
   .strict()
 

@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ROLE_OPTIONS, roleLabel, type ApiUser, type Role } from '@/data/types'
 import { createUser, deleteUser, updateUser, userStore, useResource } from '@/api/data'
 import { formatDate } from '../../../utils/format'
 import { Button, StatusPill, TextInput, Select, Field } from '@/components/ui/Form'
+import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
@@ -44,9 +45,11 @@ const toForm = (u: ApiUser | null): UserForm => ({
   password: '',
 })
 
+/** Column-header sort mapping: UI field → server `sort` value. */
+const SORT_FIELDS = { username: 'username', role: 'role', createdAt: 'newest' } as const
+
 export function UsersPage() {
   const { data: users, status, error, refresh } = useResource(userStore)
-  const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<ApiUser | null>(null)
@@ -54,20 +57,37 @@ export function UsersPage() {
   const [menuId, setMenuId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
-
-  const filtered = users.filter((u) => {
-    const q = query.trim().toLowerCase()
-    return (
-      !q ||
-      u.username.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      u.phone.includes(q.trim())
-    )
+  const [filters, setFilters] = useState<FilterValues>({})
+  const [sort, setSort] = useState<{ field: string | null; dir: 'asc' | 'desc' }>({
+    field: null,
+    dir: 'asc',
   })
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  // Column-header field → server `sort` value.
+
+  // Server does the filtering + sorting; pagination stays client-side.
+  useEffect(() => {
+    userStore.setParams({
+      search: filters.search,
+      role: filters.role,
+      from: filters.from,
+      to: filters.to,
+      sort: sort.field ? SORT_FIELDS[sort.field as keyof typeof SORT_FIELDS] : undefined,
+      order: sort.field ? sort.dir : undefined,
+    })
+    void userStore.ensure()
+  }, [filters, sort])
+
+  /** Click cycles asc → desc → server default. */
+  const onSort = (field: string, dir: 'asc' | 'desc') => {
+    if (sort.field === field && sort.dir === 'desc') setSort({ field: null, dir: 'asc' })
+    else setSort({ field, dir })
+    setPage(1)
+  }
+
+  const pageCount = Math.max(1, Math.ceil(users.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
-  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const visible = users.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const openCreate = () => {
     setEditing(emptyUser())
@@ -154,26 +174,37 @@ export function UsersPage() {
       )}
 
       <div className="rounded-card bg-surface shadow-card">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line p-4">
-          <div className="relative min-w-56 flex-1 max-w-sm">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search users"
-              className="h-10 w-full rounded-lg border border-line bg-canvas pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted focus:border-primary focus:bg-surface"
-            />
-          </div>
-        </div>
+        <FilterBar
+          filters={[
+            { key: 'search', type: 'text', label: 'Users', placeholder: 'Search name, email or phone' },
+            {
+              key: 'role',
+              type: 'select',
+              label: 'Role',
+              options: ROLE_OPTIONS,
+            },
+            { key: 'from', type: 'date', label: 'Joined from' },
+            { key: 'to', type: 'date', label: 'Joined to' },
+          ]}
+          values={filters}
+          onChange={(key, value) => {
+            setFilters((f) => ({ ...f, [key]: value }))
+            setPage(1)
+          }}
+          onReset={() => {
+            setFilters({})
+            setPage(1)
+          }}
+        />
 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs font-semibold text-muted">
-              <th className="px-4 py-3">User</th>
+              <SortTh label="User" field="username" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
               <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">Role</th>
+              <SortTh label="Role" field="role" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
               <th className="px-4 py-3">Bills</th>
-              <th className="px-4 py-3">Joined</th>
+              <SortTh label="Joined" field="createdAt" activeField={sort.field ?? ''} activeDir={sort.dir} onSort={onSort} />
               <th className="w-12 px-4 py-3"></th>
             </tr>
           </thead>
@@ -235,7 +266,7 @@ export function UsersPage() {
             {visible.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                  {status === 'loading' ? 'Loading users…' : 'No users match your search'}
+                  {status === 'loading' ? 'Loading users…' : 'No users match your filters'}
                 </td>
               </tr>
             )}
