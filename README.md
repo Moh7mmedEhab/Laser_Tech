@@ -1,6 +1,6 @@
 # Laser Tech
 
-Frontend-only admin dashboard for Laser Tech, built from the brand brief in `Brand Info.zip` (theme tokens, layout, sidebar/topbar contract) and the reference dashboard aesthetic. A backend API will replace the mock data layer later.
+Admin dashboard for Laser Tech: a React frontend (built from the brand brief in `Brand Info.zip`) plus an Express + Prisma backend API on Neon PostgreSQL. The frontend still renders from typed mock data in `src/data/` and is ready to be wired to the API.
 
 ## Technologies Used
 
@@ -10,6 +10,16 @@ Frontend-only admin dashboard for Laser Tech, built from the brand brief in `Bra
 - React Router 7
 - Recharts (statistic graphs)
 - lucide-react (icon set matching the brief's icon names)
+
+### Backend (`apps/backend`)
+
+- Express 5 + TypeScript (ESM, NodeNext)
+- Prisma 7 with the `@prisma/adapter-pg` driver (Neon pooled URL)
+- Neon PostgreSQL (branch `production` for dev, branch `backend-test` for integration/security tests)
+- Zod validation, helmet, cors, express-rate-limit (global + login limiter)
+- Session auth: opaque token in an httpOnly cookie, sha256-hashed server-side, revocable; login history table
+- Socket.IO realtime: domain events (bills/products/notes) fan out over the event bus
+- Race-safe billing: stock consumed inside a Prisma interactive transaction with conditional decrements; edits/cancels restock
 
 ## Layout
 
@@ -59,13 +69,19 @@ Status colors: success `#059669` / bg `#D1FAE5`, warning `#D97706` / bg `#FEF3C7
 
 ```sh
 npm install
-npm run dev      # start dev server
-npm run build    # type-check + production build
-npm run preview  # preview production build
+npm run dev:frontend   # React app on :5173
+npm run dev:backend    # Express API on :4000
+
+npm run build          # type-check + build both workspaces
+npm run lint           # oxlint (both)
+npm run test:integration -w apps/backend  # hits the Neon backend-test branch
 ```
+
+Backend env: `apps/backend/.env` (dev) and `.env.test` (tests) — see `.env.example`.
+Seed the first admin: `npm run seed -w apps/backend -- --username admin --email admin@lasertech.com --phone '+20...' --password 'Str0ngPass!'`
 
 ## Notes
 
-- All data is mocked in `src/data/` with plausible laser-business content; typed to make the future API contract easy to map.
+- All frontend data is mocked in `src/data/` with plausible laser-business content; typed to make the API contract easy to map.
 - Currency formatted as EGP via `Intl.NumberFormat`.
 - Light mode only, no RTL in this pass.

@@ -33,4 +33,21 @@
 | `config/` | Reserved (empty until backend config is added) |
 | `tests/unit` `tests/integration` `tests/security` | Reserved placeholders; no test runner installed yet |
 
+### `apps/backend/`
+
+Monorepo workspace, npm scripts via root `package.json` (`dev:backend`, `build -w apps/backend`).
+
+| Path | Purpose |
+|---|---|
+| `prisma/schema.prisma` | User (roles ADMIN/USER/EMPLOYEE), Session, LoginHistory, Product, Bill, BillItem, Note |
+| `prisma/migrations/` | `init` migration, applied to both Neon branches |
+| `prisma.config.ts` | Prisma 7 config; migrations use the DIRECT (unpooled) URL |
+| `src/config/` | `env.ts` (Zod-validated), `db.ts` (PrismaClient + pg adapter pool) |
+| `src/lib/` | `app.ts` (assembly), `server.ts` (HTTP+Socket.IO), `session.ts` (opaque tokens), `rate-limit.ts`, `events.ts` (domain bus), `prisma-errors.ts`, `db-retry.ts` |
+| `src/errors/`, `src/middlewares/` | `AppError` factories; ZodError→422, AppError→status; `requireAuth`/`requireRole` |
+| `src/modules/<name>/` | Per module: constants/types/validation/repository/service/controller/routes |
+| `scripts/seed.ts` | First-admin seeder (idempotent upsert) |
+| `tests/` | `unit/` (10), `integration/` (13), `security/` (10) — vitest + supertest on the Neon backend-test branch |
+| `.env` / `.env.test` | Neon pooled+direct URLs, CORS_ORIGINS, COOKIE_SECRET (gitignored) |
+
 Design source of truth: `Brand Info.zip` at `~/Programming/` — theme colors, typography, layout contract.

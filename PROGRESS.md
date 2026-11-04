@@ -33,6 +33,22 @@ Build the Laser Tech admin dashboard frontend: statistics home with graphs, full
 
 ## Remaining tasks
 
-- Wire to backend API when it exists (replace `src/data/` mocks)
+- Wire frontend to the backend API (replace `src/data/` mocks with the `/api/v1/...` endpoints + socket events)
 - Dark mode, RTL (deferred by user)
 - Test runner setup (test folders are placeholders)
+- Backend: contract tests per endpoint as the frontend wiring proceeds
+
+## Backend progress (apps/backend)
+
+- [x] Workspace split (npm workspaces), Express 5 + Prisma 7 + Neon scaffold
+- [x] Prisma schema + init migration applied (production + backend-test branches)
+- [x] Auth module: login (username/email), bcrypt, revocable sessions, login history, change password
+- [x] Users module: admin CRUD, last-admin/self-delete guards, Prisma error mapping
+- [x] Products module: CRUD, categories, low-stock filter, employee write guards
+- [x] Bills module: race-safe atomic stock consumption, restock on edit/cancel
+- [x] Notes module: subject scoping, author-only editing for employees
+- [x] Socket.IO realtime over domain event bus
+- [x] Seed script for the first admin + graceful shutdown entry point
+- [x] Live smoke test against Neon dev: auth/products/bills/notes flows verified
+- [x] Tests: 10 unit + 13 integration + 10 security (vitest, Neon backend-test branch)
+- [x] Pool hardening: idle/connect budgets + transient-socket retry layer
