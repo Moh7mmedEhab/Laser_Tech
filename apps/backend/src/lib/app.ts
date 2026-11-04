@@ -7,6 +7,7 @@ import { globalLimiter } from './rate-limit.js'
 import { errorHandler } from '../middlewares/error.js'
 import { API_PREFIX } from '../modules/auth/auth.constants.js'
 import { authRoutes } from '../modules/auth/auth.routes.js'
+import { userRoutes } from '../modules/users/users.routes.js'
 
 /** Builds the fully wired Express app without starting a server (testable). */
 export function createApp(): Express {
@@ -31,6 +32,7 @@ export function createApp(): Express {
   })
 
   app.use(`${API_PREFIX}/auth`, authRoutes)
+  app.use(`${API_PREFIX}/users`, userRoutes)
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } })

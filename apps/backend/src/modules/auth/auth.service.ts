@@ -9,8 +9,7 @@ import {
   sessionsNotFound,
   wrongPassword,
 } from './auth.errors.js'
-import { DUMMY_BCRYPT_HASH } from './auth.validation.js'
-import { SESSION_TTL_DAYS } from './auth.constants.js'
+import { DUMMY_BCRYPT_HASH, SESSION_TTL_DAYS } from './auth.constants.js'
 import type { LoginInput } from './auth.validation.js'
 import * as repo from './auth.repository.js'
 

@@ -7,3 +7,6 @@ export const USER_PUBLIC_FIELDS = {
   createdAt: true,
   updatedAt: true,
 } as const
+
+export const ROLES = ['ADMIN', 'USER', 'EMPLOYEE'] as const
+export type Role = (typeof ROLES)[number]
