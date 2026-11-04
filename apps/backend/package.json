@@ -19,6 +19,7 @@
     "schema": "prisma/schema.prisma"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",

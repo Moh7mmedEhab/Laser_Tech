@@ -5,6 +5,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.url(),
   DIRECT_DATABASE_URL: z.url().optional(),
+  DIRECT_URL: z.url().optional(),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:5173')

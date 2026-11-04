@@ -1,7 +1,9 @@
 import { PrismaClient } from '../generated/prisma/client'
-import { isProduction } from './env'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { env } from './env'
 
-// One client for the whole process; Prisma pools connections internally.
+// One client for the whole process; the pg adapter owns the pool.
+// Migrations use the direct URL through prisma.config.ts instead.
 export const prisma = new PrismaClient({
-  log: isProduction ? ['error'] : ['error', 'warn'],
+  adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
 })
