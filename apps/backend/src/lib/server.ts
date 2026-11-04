@@ -75,7 +75,3 @@ export function startServer() {
 
   return { httpServer, io }
 }
-
-if (process.env.NODE_ENV !== 'test') {
-  startServer()
-}

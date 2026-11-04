@@ -74,7 +74,7 @@ export function revokeAllSessionsForUser(userId: string, exceptSessionId?: strin
 
 export function listSessionsForUser(userId: string) {
   return prisma.session.findMany({
-    where: { userId, expiresAt: { gt: new Date() } },
+    where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
     select: { ...SESSION_SELECT, userAgent: true, ip: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
   })

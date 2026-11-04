@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { prisma } from '../src/config/db.js'
 import { hashPassword } from '../src/modules/auth/auth.service.js'
 import { ROLES } from '../src/modules/users/users.constants.js'
