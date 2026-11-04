@@ -49,6 +49,7 @@ Notes:
 | Reports | `verification-before-completion` + `docx`/`pdf`/`xlsx`/`pptx` |
 | Planning new features | `grill-me` → `brainstorming` → `writing-plans`/`write-prd` → `executing-plans` |
 | Large shipping work | `subagent-driven-development` |
+| Neon backend / database / auth / AI gateway work | Neon skills (`.agents/skills/`) |
 
 ## Usage history
 
@@ -56,6 +57,20 @@ Notes:
 - **taste / frontend-design** (method applied inline before install) — design tokens from `Brand Info.zip`, reference-quality density, browser screenshot review
 - **writing-plans / executing-plans** — plan approved, executed one commit per feature
 - **verification-before-completion** (method applied inline) — lint + typecheck/build + headless Playwright route pass with zero console errors
+
+## Neon skills (`.agents/skills/`, installed via `npx neon skills -y`, 2026-11-04)
+
+OpenCode-managed skills from `neondatabase/agent-skills`, hash-locked in `skills-lock.json`. Relevant to this project's planned backend-next phase:
+
+- `neon` — entry point: Neon cloud backend primitives (Lakebase Postgres branch-first workflow), CLI/MCP setup
+- `neon-postgres` — connections, pooled vs direct, schema migrations, branching, autoscaling; wins for existing DATABASE_URL/SQL/schema work
+- `neon-auth` — authentication (Managed Better Auth): login, sessions, OAuth, OTP; fits the previously stubbed `/login` page
+- `neon-realtime` — live SQL queries for reactive dashboards (candidate for the Statistics page later)
+- `neon-object-storage` — S3-compatible storage that branches with the DB (product images, profile photos)
+- `neon-functions` — long-running serverless Node functions with DATABASE_URL injected
+- `neon-ai-gateway` — one credential for frontier/open-source LLMs on your Neon branch
+
+These activate directly in OpenCode sessions (unlike the manual `skills/` library above). `skills-lock.json` must be kept so re-running `npx neon skills` reproduces the same versions.
 
 ## Manual tooling used in this project
 
