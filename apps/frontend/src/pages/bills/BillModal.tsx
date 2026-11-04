@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import type { ApiUser, Bill, BillItemInput, Product } from '@/data/types'
 import { Button, Field, Select, Textarea, TextInput } from '@/components/ui/Form'
-import { Drawer } from '@/components/ui/Drawer'
+import { Modal } from '@/components/ui/Modal'
 import { formatEGP } from '../../../utils/format'
 
 /** What the page turns into a create/update API call. */
@@ -15,12 +15,13 @@ export type BillDraft = {
 const emptyDraft = (): BillDraft => ({ userId: '', notes: '', items: [] })
 
 /**
- * Create / edit drawer. The client never sends prices: the total shown here
- * is estimated from current product prices, and the server re-snapshots
- * unitPrice on save (so the numbers match unless an admin repriced in
- * between — the saved bill is the source of truth).
+ * Create / edit window (centered modal, like every other form in the app).
+ * The client never sends prices: the total shown here is estimated from
+ * current product prices, and the server re-snapshots unitPrice on save
+ * (so the numbers match unless an admin repriced in between — the saved
+ * bill is the source of truth).
  */
-export function BillDrawer({
+export function BillModal({
   bill,
   users,
   products,
@@ -58,7 +59,7 @@ export function BillDrawer({
     }))
 
   return (
-    <Drawer title={isNew ? 'Create bill' : 'Edit bill'} onClose={onClose}>
+    <Modal title={isNew ? 'Create bill' : 'Edit bill'} widthClass="max-w-xl" onClose={onClose}>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -162,6 +163,6 @@ export function BillDrawer({
           </Button>
         </div>
       </form>
-    </Drawer>
+    </Modal>
   )
 }

@@ -8,7 +8,7 @@ import { LoadingDots } from '@/components/ui/Loading'
 import { FilterBar, SortTh, type FilterValues } from '@/components/ui/FilterBar'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { BillDrawer, type BillDraft } from './BillDrawer'
+import { BillModal, type BillDraft } from './BillModal'
 
 /** CUIDs are long — display a stable short label instead of the raw id. */
 const billLabel = (id: string) => `#${id.slice(-6).toUpperCase()}`
@@ -256,7 +256,7 @@ export function BillsPage() {
       </div>
 
       {formOpen && (
-        <BillDrawer
+        <BillModal
           bill={editing}
           users={users}
           products={products}

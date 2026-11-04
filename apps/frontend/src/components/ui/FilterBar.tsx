@@ -35,17 +35,20 @@ export function FilterBar({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-4 border-b border-line p-4">
       {search && (
-        <div className="relative min-w-52 flex-[2] max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          {/* pl-9 pushes the placeholder past the absolutely-positioned icon
-              (px-3 alone puts text under it on every width). */}
-          <input
-            value={values[search.key] ?? ''}
-            onChange={(e) => onChange(search.key, e.target.value)}
-            placeholder={search.placeholder ?? `Search ${search.label.toLowerCase()}`}
-            className={`${inputCls} pl-9`}
-          />
-        </div>
+        <label className="block min-w-52 flex-[2] max-w-sm">
+          <span className="mb-1 block text-[11px] font-semibold text-muted">Search</span>
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            {/* pl-9 pushes the placeholder past the absolutely-positioned icon
+                (px-3 alone puts text under it on every width). */}
+            <input
+              value={values[search.key] ?? ''}
+              onChange={(e) => onChange(search.key, e.target.value)}
+              placeholder={search.placeholder ?? `Search ${search.label.toLowerCase()}`}
+              className={`${inputCls} pl-9`}
+            />
+          </div>
+        </label>
       )}
 
       {rest.map((field) => (
