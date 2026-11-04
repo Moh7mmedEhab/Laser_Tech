@@ -167,14 +167,14 @@ describe('product validation', () => {
     ).rejects.toThrow()
   })
 
-  it('updateProductSchema rejects an empty partial body', async () => {
+  it('updateProductSchema accepts (and defaults) an empty partial body', async () => {
     // All fields are optional on a PATCH, but {} provides nothing useful.
-    // The schema itself does not enforce the "at least one field" refine that
-    // users.updateUserSchema does — so {} actually passes here.
-    // This test documents and pins the CURRENT behaviour so a future refine
-    // addition shows up as a deliberate change.
+    // Zod's .partial() keeps the create-time DEFAULTS, so an empty body
+    // parses to { category: 'General', quantity: 0 }. The schema itself does
+    // not enforce the "at least one field" refine that users.updateUserSchema
+    // does — pinned here so a future refine addition is a deliberate change.
     const parsed = await updateProductSchema.parseAsync({})
-    expect(parsed).toEqual({})
+    expect(parsed).toEqual({ category: 'General', quantity: 0 })
   })
 
   it('listProductsQuerySchema transforms lowStock string to boolean', async () => {
