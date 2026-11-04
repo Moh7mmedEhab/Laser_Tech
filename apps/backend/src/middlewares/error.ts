@@ -29,6 +29,20 @@ export function errorHandler(err: unknown, _req: Request, res: Response, next: N
     }
   }
 
+  // body-parser size guard: the entity got past express.json's 'limit' option.
+  const parser = err as { type?: string; statusCode?: number; expose?: boolean }
+  if (parser.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body too large' },
+    })
+  }
+  if (typeof parser.statusCode === 'number' && parser.statusCode >= 400 && parser.statusCode < 500 && parser.expose) {
+    const message = (err as { message?: unknown } | null) ?? null
+    return res.status(parser.statusCode).json({
+      error: { code: 'BAD_REQUEST', message: message && typeof message === 'object' && 'message' in message ? String(message.message) : 'Bad request' },
+    })
+  }
+
   console.error('Unhandled error:', err)
   // Never leak internals in production responses.
   return res.status(500).json({

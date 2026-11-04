@@ -28,9 +28,18 @@ export const createUserSchema = z
   })
   .strict()
 
-export const updateUserSchema = createUserSchema
-  .partial()
-  .refine((u) => Object.keys(u).length > 0, { error: 'Provide at least one field' })
+export const updateUserSchema = z
+  .object({
+    username: usernameSchema.optional(),
+    email: emailSchema.optional(),
+    phone: phoneSchema.optional(),
+    password: passwordSchema.optional(),
+    role: z.enum(ROLES).optional(),
+  })
+  .strict()
+  .refine((u) => Object.values(u).some((v) => v !== undefined), {
+    error: 'Provide at least one field',
+  })
 
 export const listUsersQuerySchema = z
   .object({

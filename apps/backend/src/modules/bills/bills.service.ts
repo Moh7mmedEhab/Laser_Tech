@@ -45,6 +45,12 @@ export function mergeItems(items: BillItemInput[]) {
 type ItemLine = { productId: string; quantity: number }
 
 /**
+ * Interactive transactions outlive Neon cold compute wakes: the 5s Prisma
+ * default aborts them mid-flight on a cold start, so budgets are explicit.
+ */
+const TX_OPTIONS = { timeout: 60_000, maxWait: 15_000 } as const
+
+/**
  * Race-safe stock consumption: each decrement is conditional on remaining
  * quantity, so N parallel requests can never oversell the last unit — the
  * loser gets a 409 and the whole transaction rolls back.
@@ -101,7 +107,7 @@ export async function createBill(input: CreateBillInput, adminId: string) {
 
       emit('bill:created', { billId: created.id, userId: input.userId, amount: totalCents / 100 })
       return created
-    })
+    }, TX_OPTIONS)
 
     return serializeBill(bill)
   } catch (err) {
@@ -148,7 +154,7 @@ export async function updateBill(id: string, input: UpdateBillInput) {
         },
         include: BILL_INCLUDE,
       })
-    })
+    }, TX_OPTIONS)
 
     emit('bill:updated', { billId: id })
     return serializeBill(bill)
@@ -184,7 +190,7 @@ export async function deleteBill(id: string) {
       })
     }
     await repo.deleteBill(id)
-  })
+  }, TX_OPTIONS)
 
   emit('bill:deleted', { billId: id })
 }

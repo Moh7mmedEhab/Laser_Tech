@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../config/db.js'
+import { withRetry } from '../../lib/db-retry.js'
 import type { ListNotesQuery } from './notes.validation.js'
 
 export const NOTE_INCLUDE = {
@@ -45,7 +46,7 @@ export function listNotes(query: ListNotesQuery) {
 }
 
 export function findNoteById(id: string) {
-  return prisma.note.findUnique({ where: { id }, include: NOTE_INCLUDE })
+  return withRetry(() => prisma.note.findUnique({ where: { id }, include: NOTE_INCLUDE }))
 }
 
 export function createNote(data: Prisma.NoteCreateInput) {

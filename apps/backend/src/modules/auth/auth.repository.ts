@@ -1,5 +1,6 @@
 import { prisma } from '../../config/db.js'
 import { hashSessionToken } from '../../lib/session.js'
+import { withRetry } from '../../lib/db-retry.js'
 import { USER_PUBLIC_FIELDS } from '../users/users.constants.js'
 
 const SESSION_SELECT = {
@@ -13,21 +14,25 @@ const SESSION_SELECT = {
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 export function findUserByIdentifier(identifier: string) {
-  return prisma.user.findFirst({
-    where: { OR: [{ username: identifier }, { email: identifier.toLowerCase() }] },
-    select: { passwordHash: true, ...USER_PUBLIC_FIELDS },
-  })
+  return withRetry(() =>
+    prisma.user.findFirst({
+      where: { OR: [{ username: identifier }, { email: identifier.toLowerCase() }] },
+      select: { passwordHash: true, ...USER_PUBLIC_FIELDS },
+    }),
+  )
 }
 
 export function findActiveSession(token: string) {
-  return prisma.session.findFirst({
-    where: {
-      tokenHash: hashSessionToken(token),
-      revokedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-    select: { id: true, user: { select: { id: true, username: true, email: true, role: true } } },
-  })
+  return withRetry(() =>
+    prisma.session.findFirst({
+      where: {
+        tokenHash: hashSessionToken(token),
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true, user: { select: { id: true, username: true, email: true, role: true } } },
+    }),
+  )
 }
 
 /** Session creation and the login-history row live or die together. */

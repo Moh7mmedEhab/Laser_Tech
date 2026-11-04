@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../config/db.js'
+import { withRetry } from '../../lib/db-retry.js'
 import type { ListBillsQuery } from './bills.validation.js'
 
 /**
@@ -49,7 +50,7 @@ export function listBills(query: ListBillsQuery) {
 }
 
 export function findBillById(id: string) {
-  return prisma.bill.findUnique({ where: { id }, include: BILL_INCLUDE })
+  return withRetry(() => prisma.bill.findUnique({ where: { id }, include: BILL_INCLUDE }))
 }
 
 export function deleteBill(id: string) {

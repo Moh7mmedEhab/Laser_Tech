@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../config/db.js'
+import { withRetry } from '../../lib/db-retry.js'
 import { LOW_STOCK_THRESHOLD } from './products.constants.js'
 import type { CreateProductInput, ListProductsQuery, UpdateProductInput } from './products.validation.js'
 
@@ -49,7 +50,7 @@ export function listProducts(query: ListProductsQuery) {
 }
 
 export function findProductById(id: string) {
-  return prisma.product.findUnique({ where: { id }, select: PRODUCT_SELECT })
+  return withRetry(() => prisma.product.findUnique({ where: { id }, select: PRODUCT_SELECT }))
 }
 
 export function createProduct(data: CreateProductInput) {

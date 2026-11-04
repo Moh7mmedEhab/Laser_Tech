@@ -1,4 +1,5 @@
 import { prisma } from '../../config/db.js'
+import { withRetry } from '../../lib/db-retry.js'
 import { USER_PUBLIC_FIELDS } from './users.constants.js'
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.validation.js'
 
@@ -30,10 +31,12 @@ export function listUsers(query: ListUsersQuery) {
 }
 
 export function findUserById(id: string) {
-  return prisma.user.findUnique({
-    where: { id },
-    select: { ...USER_PUBLIC_FIELDS, passwordHash: true },
-  })
+  return withRetry(() =>
+    prisma.user.findUnique({
+      where: { id },
+      select: { ...USER_PUBLIC_FIELDS, passwordHash: true },
+    }),
+  )
 }
 
 export function countAdminsExcluding(userId: string) {
