@@ -10,6 +10,7 @@ import { authRoutes } from '../modules/auth/auth.routes.js'
 import { userRoutes } from '../modules/users/users.routes.js'
 import { productRoutes } from '../modules/products/products.routes.js'
 import { billRoutes } from '../modules/bills/bills.routes.js'
+import { noteRoutes } from '../modules/notes/notes.routes.js'
 
 /** Builds the fully wired Express app without starting a server (testable). */
 export function createApp(): Express {
@@ -37,6 +38,7 @@ export function createApp(): Express {
   app.use(`${API_PREFIX}/users`, userRoutes)
   app.use(`${API_PREFIX}/products`, productRoutes)
   app.use(`${API_PREFIX}/bills`, billRoutes)
+  app.use(`${API_PREFIX}/notes`, noteRoutes)
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } })
